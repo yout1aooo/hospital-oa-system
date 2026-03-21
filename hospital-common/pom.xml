@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.hospitaloa</groupId>
+        <artifactId>hospital-oa-system</artifactId>
+        <version>3.6.7</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <modules>
+        <module>hospital-common-log</module>
+        <module>hospital-common-core</module>
+        <module>hospital-common-redis</module>
+        <module>hospital-common-seata</module>
+        <module>hospital-common-swagger</module>
+        <module>hospital-common-security</module>
+        <module>hospital-common-sensitive</module>
+        <module>hospital-common-datascope</module>
+        <module>hospital-common-datasource</module>
+    </modules>
+
+    <artifactId>hospital-common</artifactId>
+    <packaging>pom</packaging>
+
+    <description>
+        hospital-common通用模块
+    </description>
+
+</project>

@@ -1,0 +1,13 @@
+# 基础镜像
+FROM redis
+# author
+MAINTAINER hospital-oa-system
+
+# 挂载目录
+VOLUME /home/hospital/redis
+# 创建目录
+RUN mkdir -p /home/hospital/redis
+# 指定路径
+WORKDIR /home/hospital/redis
+# 复制conf文件到路径
+COPY ./conf/redis.conf /home/hospital/redis/redis.conf

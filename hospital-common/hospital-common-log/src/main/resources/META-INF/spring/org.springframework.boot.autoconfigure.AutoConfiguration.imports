@@ -1,0 +1,2 @@
+com.hospitaloa.common.log.service.AsyncLogService
+com.hospitaloa.common.log.aspect.LogAspect

@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(\"D:/soft/nacos/nacos/bin/shutdown.cmd\":*)",
+      "Bash(\"D:/soft/nacos/nacos/bin/startup.cmd\":*)",
+      "Bash(netstat:*)",
+      "Bash(\"C:/Program Files/MySQL/MySQL Server 5.7/bin/mysql.exe\":*)",
+      "Bash(perl:*)",
+      "Bash(git:*)",
+      "Bash(mvn:*)",
+      "Bash(java:*)",
+      "Bash(export:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(mv:*)",
+      "Bash(read d:*)",
+      "Bash(xargs:*)",
+      "Bash(grep:*)",
+      "Bash(yarn install:*)",
+      "Bash(yarn:*)",
+      "Bash(grep \"\"version\"\":*)",
+      "Bash(npx vue-cli-service:*)",
+      "Bash(npm view:*)",
+      "Bash(grep \"\"core-js\"\":*)",
+      "Bash(rm:*)",
+      "Bash(ls node_modules:*)",
+      "Bash(curl:*)",
+      "Bash(do:*)"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+com.hospitaloa.system.api.factory.RemoteUserFallbackFactory
+com.hospitaloa.system.api.factory.RemoteLogFallbackFactory
+com.hospitaloa.system.api.factory.RemoteFileFallbackFactory
