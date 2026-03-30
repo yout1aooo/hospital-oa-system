@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.system.mapper.OaDocumentMapper">
+
+    <resultMap id="OaDocumentResult" type="com.hospitaloa.system.domain.OaDocument">
+        <id property="documentId" column="document_id" />
+        <result property="categoryId" column="category_id" />
+        <result property="categoryName" column="category_name" />
+        <result property="documentType" column="document_type" />
+        <result property="documentTitle" column="document_title" />
+        <result property="documentNo" column="document_no" />
+        <result property="content" column="content" />
+        <result property="attachmentUrl" column="attachment_url" />
+        <result property="status" column="status" />
+        <result property="statusLabel" column="status_label" />
+        <result property="readStatus" column="read_status" />
+        <result property="readStatusLabel" column="read_status_label" />
+        <result property="publishTime" column="publish_time" />
+        <result property="readTime" column="read_time" />
+        <result property="confirmTime" column="confirm_time" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectDocumentVo">
+        select
+            d.document_id,
+            d.category_id,
+            c.category_name,
+            d.document_type,
+            d.document_title,
+            d.document_no,
+            d.content,
+            d.attachment_url,
+            d.status,
+            case d.status when '0' then '草稿' when '1' then '已发布' when '2' then '已归档' else d.status end as status_label,
+            ifnull(r.read_status, '0') as read_status,
+            case ifnull(r.read_status, '0') when '0' then '未读' when '1' then '已读' when '2' then '已确认' else ifnull(r.read_status, '0') end as read_status_label,
+            d.publish_time,
+            r.read_time,
+            r.confirm_time,
+            d.create_by,
+            d.create_time,
+            d.update_by,
+            d.update_time
+        from oa_document d
+        left join oa_document_category c on d.category_id = c.category_id
+        left join oa_document_read_log r on d.document_id = r.document_id and r.user_id = #{userId}
+    </sql>
+
+    <sql id="selectManageDocumentVo">
+        select
+            d.document_id,
+            d.category_id,
+            c.category_name,
+            d.document_type,
+            d.document_title,
+            d.document_no,
+            d.content,
+            d.attachment_url,
+            d.status,
+            case d.status when '0' then '草稿' when '1' then '已发布' when '2' then '已归档' else d.status end as status_label,
+            '0' as read_status,
+            '未读' as read_status_label,
+            d.publish_time,
+            null as read_time,
+            null as confirm_time,
+            d.create_by,
+            d.create_time,
+            d.update_by,
+            d.update_time
+        from oa_document d
+        left join oa_document_category c on d.category_id = c.category_id
+    </sql>
+
+    <select id="selectDocumentList" resultMap="OaDocumentResult">
+        <include refid="selectDocumentVo" />
+        <where>
+            and d.status in ('1', '2')
+            <if test="tab == 'unread'">
+                and ifnull(r.read_status, '0') = '0'
+            </if>
+            <if test="tab == 'confirmed'">
+                and ifnull(r.read_status, '0') = '2'
+            </if>
+            <if test="title != null and title != ''">
+                and d.document_title like concat('%', #{title}, '%')
+            </if>
+            <if test="categoryName != null and categoryName != ''">
+                and c.category_name like concat('%', #{categoryName}, '%')
+            </if>
+            <if test="documentNo != null and documentNo != ''">
+                and d.document_no like concat('%', #{documentNo}, '%')
+            </if>
+        </where>
+        order by d.publish_time desc, d.document_id desc
+    </select>
+
+    <select id="selectManageDocumentList" resultMap="OaDocumentResult">
+        <include refid="selectManageDocumentVo" />
+        <where>
+            <if test="status != null and status != ''">
+                and d.status = #{status}
+            </if>
+            <if test="title != null and title != ''">
+                and d.document_title like concat('%', #{title}, '%')
+            </if>
+            <if test="categoryName != null and categoryName != ''">
+                and c.category_name like concat('%', #{categoryName}, '%')
+            </if>
+            <if test="documentNo != null and documentNo != ''">
+                and d.document_no like concat('%', #{documentNo}, '%')
+            </if>
+        </where>
+        order by d.document_id desc
+    </select>
+
+    <select id="selectDocumentById" resultMap="OaDocumentResult">
+        <include refid="selectDocumentVo" />
+        where d.document_id = #{documentId}
+          and d.status in ('1', '2')
+    </select>
+
+    <select id="selectManageDocumentById" resultMap="OaDocumentResult">
+        <include refid="selectManageDocumentVo" />
+        where d.document_id = #{documentId}
+    </select>
+
+    <insert id="insertDocument" parameterType="com.hospitaloa.system.domain.OaDocument" useGeneratedKeys="true" keyProperty="documentId">
+        insert into oa_document (
+            category_id, document_type, document_title, document_no, content, attachment_url, status, publish_time, create_by, create_time, update_by, update_time
+        ) values (
+            #{categoryId}, #{documentType}, #{documentTitle}, #{documentNo}, #{content}, #{attachmentUrl}, #{status}, #{publishTime}, #{createBy}, sysdate(), '', null
+        )
+    </insert>
+
+    <update id="updateDocument" parameterType="com.hospitaloa.system.domain.OaDocument">
+        update oa_document
+        <set>
+            <if test="categoryId != null">category_id = #{categoryId},</if>
+            <if test="documentType != null and documentType != ''">document_type = #{documentType},</if>
+            <if test="documentTitle != null">document_title = #{documentTitle},</if>
+            <if test="documentNo != null">document_no = #{documentNo},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="attachmentUrl != null">attachment_url = #{attachmentUrl},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="publishTime != null">publish_time = #{publishTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where document_id = #{documentId}
+    </update>
+
+    <delete id="deleteDocumentByIds">
+        delete from oa_document
+        where document_id in
+        <foreach collection="documentIds" item="documentId" open="(" separator="," close=")">
+            #{documentId}
+        </foreach>
+    </delete>
+
+    <select id="countDocumentByIds" resultType="int">
+        select count(1)
+        from oa_document
+        where document_id in
+        <foreach collection="documentIds" item="documentId" open="(" separator="," close=")">
+            #{documentId}
+        </foreach>
+    </select>
+
+    <update id="updateDocumentStatus">
+        update oa_document
+        set status = #{status},
+            publish_time = case when #{status} = '1' and publish_time is null then sysdate() else publish_time end,
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where document_id = #{documentId}
+    </update>
+
+    <insert id="saveReadLogConfirmed">
+        insert into oa_document_read_log (
+            document_id, user_id, read_status, read_time, confirm_time, create_time
+        ) values (
+            #{documentId}, #{userId}, '2', sysdate(), sysdate(), sysdate()
+        )
+        on duplicate key update
+            read_status = '2',
+            read_time = ifnull(read_time, sysdate()),
+            confirm_time = sysdate()
+    </insert>
+</mapper>

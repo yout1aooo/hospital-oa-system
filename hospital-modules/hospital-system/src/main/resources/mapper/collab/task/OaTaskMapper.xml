@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.collab.task.mapper.OaTaskMapper">
+
+    <resultMap id="OaTaskResult" type="com.hospitaloa.oa.collab.task.domain.OaTask">
+        <id property="taskId" column="task_id" />
+        <result property="taskTitle" column="task_title" />
+        <result property="taskType" column="task_type" />
+        <result property="publisherId" column="publisher_id" />
+        <result property="publisherName" column="publisher_name" />
+        <result property="assigneeId" column="assignee_id" />
+        <result property="assigneeName" column="assignee_name" />
+        <result property="priorityLevel" column="priority_level" />
+        <result property="taskStatus" column="task_status" />
+        <result property="taskStatusLabel" column="task_status_label" />
+        <result property="startTime" column="start_time" />
+        <result property="dueTime" column="due_time" />
+        <result property="completeTime" column="complete_time" />
+        <result property="content" column="content" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <resultMap id="OaTaskRecordResult" type="com.hospitaloa.oa.collab.task.domain.OaTaskRecord">
+        <id property="recordId" column="record_id" />
+        <result property="taskId" column="task_id" />
+        <result property="operatorId" column="operator_id" />
+        <result property="operatorName" column="operator_name" />
+        <result property="recordType" column="record_type" />
+        <result property="recordContent" column="record_content" />
+        <result property="createTime" column="create_time" />
+    </resultMap>
+
+    <sql id="taskScopeCondition">
+        and (publisher_id = #{userId} or assignee_id = #{userId} or create_by = 'admin' or assignee_name = #{username})
+    </sql>
+
+    <select id="selectTaskList" resultMap="OaTaskResult">
+        select task_id,
+               task_title,
+               task_type,
+               publisher_id,
+               publisher_name,
+               assignee_id,
+               assignee_name,
+               priority_level,
+               task_status,
+               case task_status when 'pending' then '待处理' when 'processing' then '进行中' when 'completed' then '已完成' else task_status end as task_status_label,
+               start_time,
+               due_time,
+               complete_time,
+               content,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from oa_task
+        <where>
+            <include refid="taskScopeCondition" />
+            <if test="taskTitle != null and taskTitle != ''">
+                and task_title like concat('%', #{taskTitle}, '%')
+            </if>
+            <if test="taskStatus != null and taskStatus != ''">
+                and task_status = #{taskStatus}
+            </if>
+        </where>
+        order by case task_status when 'pending' then 1 when 'processing' then 2 when 'completed' then 3 else 9 end,
+                 due_time asc,
+                 task_id desc
+    </select>
+
+    <select id="selectTaskById" resultMap="OaTaskResult">
+        select task_id,
+               task_title,
+               task_type,
+               publisher_id,
+               publisher_name,
+               assignee_id,
+               assignee_name,
+               priority_level,
+               task_status,
+               case task_status when 'pending' then '待处理' when 'processing' then '进行中' when 'completed' then '已完成' else task_status end as task_status_label,
+               start_time,
+               due_time,
+               complete_time,
+               content,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from oa_task
+        where task_id = #{taskId}
+          <include refid="taskScopeCondition" />
+    </select>
+
+    <insert id="insertTask" parameterType="com.hospitaloa.oa.collab.task.domain.OaTask" useGeneratedKeys="true" keyProperty="taskId">
+        insert into oa_task (
+            task_title, task_type, publisher_id, publisher_name, assignee_id, assignee_name, priority_level, task_status, start_time, due_time, content, create_by, create_time
+        ) values (
+            #{taskTitle}, #{taskType}, #{publisherId}, #{publisherName}, #{assigneeId}, #{assigneeName}, #{priorityLevel}, #{taskStatus}, #{startTime}, #{dueTime}, #{content}, #{createBy}, sysdate()
+        )
+    </insert>
+
+    <update id="completeTask">
+        update oa_task
+        set task_status = 'completed',
+            complete_time = sysdate(),
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where task_id = #{taskId}
+          and (publisher_id = #{userId} or assignee_id = #{userId} or assignee_name = #{username})
+          and task_status != 'completed'
+    </update>
+
+    <update id="startTaskProcessing">
+        update oa_task
+        set task_status = 'processing',
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where task_id = #{taskId}
+          and assignee_id = #{userId}
+          and task_status = 'pending'
+    </update>
+
+    <select id="selectTaskRecordList" resultMap="OaTaskRecordResult">
+        select record_id, task_id, operator_id, operator_name, record_type, record_content, create_time
+        from oa_task_record
+        where task_id = #{taskId}
+          and exists (
+              select 1
+              from oa_task
+              where task_id = #{taskId}
+                and (publisher_id = #{userId} or assignee_id = #{userId} or create_by = 'admin' or assignee_name = #{username})
+          )
+        order by record_id desc
+    </select>
+
+    <insert id="insertTaskRecord" parameterType="com.hospitaloa.oa.collab.task.domain.OaTaskRecord" useGeneratedKeys="true" keyProperty="recordId">
+        insert into oa_task_record (
+            task_id, operator_id, operator_name, record_type, record_content, create_time
+        ) values (
+            #{taskId}, #{operatorId}, #{operatorName}, #{recordType}, #{recordContent}, sysdate()
+        )
+    </insert>
+</mapper>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.collab.meeting.mapper.OaMeetingMapper">
+
+    <resultMap id="OaMeetingResult" type="com.hospitaloa.oa.collab.meeting.domain.OaMeeting">
+        <id property="meetingId" column="meeting_id" />
+        <result property="meetingTitle" column="meeting_title" />
+        <result property="roomId" column="room_id" />
+        <result property="roomName" column="room_name" />
+        <result property="organizerId" column="organizer_id" />
+        <result property="organizerName" column="organizer_name" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="meetingStatus" column="meeting_status" />
+        <result property="meetingStatusLabel" column="meeting_status_label" />
+        <result property="summaryContent" column="summary_content" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <resultMap id="OaMeetingRoomResult" type="com.hospitaloa.oa.collab.meeting.domain.OaMeetingRoom">
+        <id property="roomId" column="room_id" />
+        <result property="roomName" column="room_name" />
+        <result property="location" column="location" />
+        <result property="capacity" column="capacity" />
+        <result property="equipment" column="equipment" />
+        <result property="status" column="status" />
+    </resultMap>
+
+    <sql id="selectMeetingColumns">
+        select m.meeting_id,
+               m.meeting_title,
+               m.room_id,
+               r.room_name,
+               m.organizer_id,
+               m.organizer_name,
+               m.start_time,
+               m.end_time,
+               m.meeting_status,
+               case m.meeting_status when 'draft' then '草稿' when 'scheduled' then '已安排' when 'finished' then '已结束' else m.meeting_status end as meeting_status_label,
+               m.summary_content,
+               m.create_by,
+               m.create_time,
+               m.update_by,
+               m.update_time
+        from oa_meeting m
+        left join oa_meeting_room r on m.room_id = r.room_id
+    </sql>
+
+    <select id="selectMeetingList" resultMap="OaMeetingResult">
+        <include refid="selectMeetingColumns" />
+        <where>
+            and (m.organizer_id = #{userId} or m.create_by = 'admin')
+            <if test="meetingTitle != null and meetingTitle != ''">
+                and m.meeting_title like concat('%', #{meetingTitle}, '%')
+            </if>
+            <if test="meetingStatus != null and meetingStatus != ''">
+                and m.meeting_status = #{meetingStatus}
+            </if>
+        </where>
+        order by case m.meeting_status when 'scheduled' then 1 when 'draft' then 2 when 'finished' then 3 else 9 end,
+                 m.start_time asc,
+                 m.meeting_id desc
+    </select>
+
+    <select id="selectMeetingById" resultMap="OaMeetingResult">
+        <include refid="selectMeetingColumns" />
+        where m.meeting_id = #{meetingId}
+          and (m.organizer_id = #{userId} or m.create_by = 'admin')
+    </select>
+
+    <insert id="insertMeeting" parameterType="com.hospitaloa.oa.collab.meeting.domain.OaMeeting" useGeneratedKeys="true" keyProperty="meetingId">
+        insert into oa_meeting (
+            meeting_title, room_id, organizer_id, organizer_name, start_time, end_time, meeting_status, summary_content, create_by, create_time
+        ) values (
+            #{meetingTitle}, #{roomId}, #{organizerId}, #{organizerName}, #{startTime}, #{endTime}, #{meetingStatus}, #{summaryContent}, #{createBy}, sysdate()
+        )
+    </insert>
+
+    <update id="finishMeeting">
+        update oa_meeting
+        set meeting_status = 'finished',
+            update_by = #{updateBy},
+            update_time = sysdate()
+        where meeting_id = #{meetingId}
+          and organizer_id = #{userId}
+          and meeting_status != 'finished'
+    </update>
+
+    <select id="selectRoomList" resultMap="OaMeetingRoomResult">
+        select room_id, room_name, location, capacity, equipment, status
+        from oa_meeting_room
+        where status = '0'
+        order by room_id asc
+    </select>
+</mapper>

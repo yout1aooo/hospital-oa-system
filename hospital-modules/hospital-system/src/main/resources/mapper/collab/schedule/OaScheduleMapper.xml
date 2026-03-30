@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.collab.schedule.mapper.OaScheduleMapper">
+
+    <resultMap id="OaScheduleResult" type="com.hospitaloa.oa.collab.schedule.domain.OaSchedule">
+        <id property="scheduleId" column="schedule_id" />
+        <result property="scheduleTitle" column="schedule_title" />
+        <result property="ownerId" column="owner_id" />
+        <result property="ownerName" column="owner_name" />
+        <result property="startTime" column="start_time" />
+        <result property="endTime" column="end_time" />
+        <result property="remindTime" column="remind_time" />
+        <result property="scheduleType" column="schedule_type" />
+        <result property="scheduleStatus" column="schedule_status" />
+        <result property="scheduleStatusLabel" column="schedule_status_label" />
+        <result property="remark" column="remark" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+        <result property="createBy" column="create_by" />
+        <result property="updateBy" column="update_by" />
+    </resultMap>
+
+    <sql id="selectScheduleColumns">
+        select s.schedule_id,
+               s.schedule_title,
+               s.owner_id,
+               u.nick_name as owner_name,
+               s.start_time,
+               s.end_time,
+               s.remind_time,
+               s.schedule_type,
+               s.schedule_status,
+               case s.schedule_status when 'pending' then '待处理' when 'completed' then '已完成' when 'cancelled' then '已取消' else s.schedule_status end as schedule_status_label,
+               s.remark,
+               s.create_time,
+               s.update_time,
+               '' as create_by,
+               '' as update_by
+        from oa_schedule s
+        left join sys_user u on s.owner_id = u.user_id
+    </sql>
+
+    <select id="selectScheduleList" resultMap="OaScheduleResult">
+        <include refid="selectScheduleColumns" />
+        <where>
+            and s.owner_id = #{ownerId}
+            <if test="scheduleTitle != null and scheduleTitle != ''">
+                and s.schedule_title like concat('%', #{scheduleTitle}, '%')
+            </if>
+            <if test="scheduleStatus != null and scheduleStatus != ''">
+                and s.schedule_status = #{scheduleStatus}
+            </if>
+        </where>
+        order by case s.schedule_status when 'pending' then 1 when 'completed' then 2 when 'cancelled' then 3 else 9 end,
+                 s.start_time asc,
+                 s.schedule_id desc
+    </select>
+
+    <select id="selectScheduleById" resultMap="OaScheduleResult">
+        <include refid="selectScheduleColumns" />
+        where s.schedule_id = #{scheduleId}
+          and s.owner_id = #{ownerId}
+    </select>
+
+    <insert id="insertSchedule" parameterType="com.hospitaloa.oa.collab.schedule.domain.OaSchedule" useGeneratedKeys="true" keyProperty="scheduleId">
+        insert into oa_schedule (
+            schedule_title, owner_id, start_time, end_time, remind_time, schedule_type, schedule_status, remark, create_time, update_time
+        ) values (
+            #{scheduleTitle}, #{ownerId}, #{startTime}, #{endTime}, #{remindTime}, #{scheduleType}, #{scheduleStatus}, #{remark}, sysdate(), sysdate()
+        )
+    </insert>
+
+    <update id="finishSchedule">
+        update oa_schedule
+        set schedule_status = 'completed',
+            update_time = sysdate()
+        where schedule_id = #{scheduleId}
+          and owner_id = #{ownerId}
+          and schedule_status != 'completed'
+    </update>
+</mapper>

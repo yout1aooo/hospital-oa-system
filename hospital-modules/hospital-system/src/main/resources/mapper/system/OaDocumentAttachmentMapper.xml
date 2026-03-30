@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.system.mapper.OaDocumentAttachmentMapper">
+
+    <resultMap id="OaDocumentAttachmentResult" type="com.hospitaloa.system.domain.OaDocumentAttachment">
+        <id property="attachmentId" column="attachment_id" />
+        <result property="documentId" column="document_id" />
+        <result property="fileName" column="file_name" />
+        <result property="originalName" column="original_name" />
+        <result property="contentType" column="content_type" />
+        <result property="fileSize" column="file_size" />
+        <result property="fileUrl" column="file_url" />
+        <result property="mongoFileId" column="mongo_file_id" />
+        <result property="sortOrder" column="sort_order" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectAttachmentVo">
+        select attachment_id,
+               document_id,
+               file_name,
+               original_name,
+               content_type,
+               file_size,
+               file_url,
+               mongo_file_id,
+               sort_order,
+               create_by,
+               create_time,
+               update_by,
+               update_time
+        from oa_document_attachment
+    </sql>
+
+    <select id="selectAttachmentListByDocumentId" resultMap="OaDocumentAttachmentResult">
+        <include refid="selectAttachmentVo" />
+        where document_id = #{documentId}
+        order by sort_order asc, attachment_id asc
+    </select>
+
+    <select id="selectAttachmentById" resultMap="OaDocumentAttachmentResult">
+        <include refid="selectAttachmentVo" />
+        where attachment_id = #{attachmentId}
+    </select>
+
+    <select id="countAttachmentByDocumentId" resultType="int">
+        select count(1)
+        from oa_document_attachment
+        where document_id = #{documentId}
+    </select>
+
+    <insert id="insertAttachment" parameterType="com.hospitaloa.system.domain.OaDocumentAttachment" useGeneratedKeys="true" keyProperty="attachmentId">
+        insert into oa_document_attachment (
+            document_id, file_name, original_name, content_type, file_size, file_url, mongo_file_id, sort_order, create_by, create_time, update_by, update_time
+        ) values (
+            #{documentId}, #{fileName}, #{originalName}, #{contentType}, #{fileSize}, #{fileUrl}, #{mongoFileId}, #{sortOrder}, #{createBy}, sysdate(), '', null
+        )
+    </insert>
+
+    <delete id="deleteAttachmentById">
+        delete from oa_document_attachment where attachment_id = #{attachmentId}
+    </delete>
+
+    <delete id="deleteAttachmentByDocumentIds">
+        delete from oa_document_attachment
+        where document_id in
+        <foreach collection="documentIds" item="documentId" open="(" separator="," close=")">
+            #{documentId}
+        </foreach>
+    </delete>
+</mapper>

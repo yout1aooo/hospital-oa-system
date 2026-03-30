@@ -4,12 +4,19 @@ server:
 
 # Spring
 spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
   application:
     # 应用名称
     name: hospital-system
   profiles:
     # 环境配置
     active: dev
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://127.0.0.1:27017/hospital_oa}
   cloud:
     nacos:
       discovery:

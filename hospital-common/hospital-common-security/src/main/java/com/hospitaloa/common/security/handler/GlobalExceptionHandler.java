@@ -10,6 +10,7 @@ import org.springframework.web.bind.MissingPathVariableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import com.hospitaloa.common.core.constant.HttpStatus;
 import com.hospitaloa.common.core.exception.DemoModeException;
 import com.hospitaloa.common.core.exception.InnerAuthException;
@@ -100,6 +101,17 @@ public class GlobalExceptionHandler
         }
         log.error("请求参数类型不匹配'{}',发生系统异常.", requestURI, e);
         return AjaxResult.error(String.format("请求参数类型不匹配，参数[%s]要求类型为：'%s'，但输入值为：'%s'", e.getName(), e.getRequiredType().getName(), value));
+    }
+
+    /**
+     * 文件上传大小超限异常
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public AjaxResult handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e, HttpServletRequest request)
+    {
+        String requestURI = request.getRequestURI();
+        log.error("请求地址'{}',上传文件大小超出限制.", requestURI, e);
+        return AjaxResult.error("上传文件大小超出限制，单个文件最大允许20MB，请压缩后重试");
     }
 
     /**

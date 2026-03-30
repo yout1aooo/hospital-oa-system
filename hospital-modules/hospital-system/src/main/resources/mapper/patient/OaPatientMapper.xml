@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.patient.mapper.OaPatientMapper">
+
+    <resultMap id="OaPatientResult" type="com.hospitaloa.oa.patient.domain.OaPatient">
+        <id property="patientId" column="patient_id" />
+        <result property="patientNo" column="patient_no" />
+        <result property="patientName" column="patient_name" />
+        <result property="gender" column="gender" />
+        <result property="genderLabel" column="gender_label" />
+        <result property="idCardNo" column="id_card_no" />
+        <result property="phoneNo" column="phone_no" />
+        <result property="birthday" column="birthday" />
+        <result property="deptId" column="dept_id" />
+        <result property="deptName" column="dept_name" />
+        <result property="attendingDoctorId" column="attending_doctor_id" />
+        <result property="attendingDoctorName" column="attending_doctor_name" />
+        <result property="inpatientNo" column="inpatient_no" />
+        <result property="patientStatus" column="patient_status" />
+        <result property="patientStatusLabel" column="patient_status_label" />
+        <result property="admissionTime" column="admission_time" />
+        <result property="dischargeTime" column="discharge_time" />
+        <result property="remark" column="remark" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+        <result property="caseCount" column="case_count" />
+    </resultMap>
+
+    <resultMap id="OaPatientCaseResult" type="com.hospitaloa.oa.patient.domain.OaPatientCase">
+        <id property="caseId" column="case_id" />
+        <result property="patientId" column="patient_id" />
+        <result property="patientNo" column="patient_no" />
+        <result property="patientName" column="patient_name" />
+        <result property="caseNo" column="case_no" />
+        <result property="caseTitle" column="case_title" />
+        <result property="visitType" column="visit_type" />
+        <result property="visitTypeLabel" column="visit_type_label" />
+        <result property="caseStatus" column="case_status" />
+        <result property="caseStatusLabel" column="case_status_label" />
+        <result property="diagnosis" column="diagnosis" />
+        <result property="chiefComplaint" column="chief_complaint" />
+        <result property="treatmentPlan" column="treatment_plan" />
+        <result property="doctorId" column="doctor_id" />
+        <result property="doctorName" column="doctor_name" />
+        <result property="deptId" column="dept_id" />
+        <result property="deptName" column="dept_name" />
+        <result property="visitTime" column="visit_time" />
+        <result property="dischargeTime" column="discharge_time" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectPatientVo">
+        select p.patient_id,
+               p.patient_no,
+               p.patient_name,
+               p.gender,
+               case p.gender when '0' then '男' when '1' then '女' else '未知' end as gender_label,
+               concat(left(ifnull(p.id_card_no, ''), 6), '********', right(ifnull(p.id_card_no, ''), 4)) as id_card_no,
+               concat(left(ifnull(p.phone_no, ''), 3), '****', right(ifnull(p.phone_no, ''), 4)) as phone_no,
+               p.birthday,
+               p.dept_id,
+               p.dept_name,
+               p.attending_doctor_id,
+               p.attending_doctor_name,
+               p.inpatient_no,
+               p.patient_status,
+               case p.patient_status when 'active' then '在院' when 'observation' then '留观' when 'discharged' then '已出院' else p.patient_status end as patient_status_label,
+               p.admission_time,
+               p.discharge_time,
+               p.remark,
+               p.create_by,
+               p.create_time,
+               p.update_by,
+               p.update_time,
+               (select count(1) from oa_patient_case pc where pc.patient_id = p.patient_id) as case_count
+        from oa_patient p
+    </sql>
+
+    <sql id="selectCaseVo">
+        select c.case_id,
+               c.patient_id,
+               p.patient_no,
+               p.patient_name,
+               c.case_no,
+               c.case_title,
+               c.visit_type,
+               case c.visit_type when 'outpatient' then '门诊' when 'inpatient' then '住院' when 'emergency' then '急诊' else c.visit_type end as visit_type_label,
+               c.case_status,
+               case c.case_status when 'active' then '进行中' when 'review' then '复诊跟踪' when 'closed' then '已结案' else c.case_status end as case_status_label,
+               c.diagnosis,
+               c.chief_complaint,
+               c.treatment_plan,
+               c.doctor_id,
+               c.doctor_name,
+               c.dept_id,
+               c.dept_name,
+               c.visit_time,
+               c.discharge_time,
+               c.create_by,
+               c.create_time,
+               c.update_by,
+               c.update_time
+        from oa_patient_case c
+        left join oa_patient p on c.patient_id = p.patient_id
+    </sql>
+
+    <select id="selectPatientList" resultMap="OaPatientResult">
+        <include refid="selectPatientVo" />
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (
+                    p.patient_name like concat('%', #{keyword}, '%')
+                    or p.patient_no like concat('%', #{keyword}, '%')
+                    or p.inpatient_no like concat('%', #{keyword}, '%')
+                    or right(ifnull(p.id_card_no, ''), 4) like concat('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="patientStatus != null and patientStatus != ''">
+                and p.patient_status = #{patientStatus}
+            </if>
+            <if test="deptId != null">
+                and p.dept_id = #{deptId}
+            </if>
+            <if test="doctorName != null and doctorName != ''">
+                and p.attending_doctor_name like concat('%', #{doctorName}, '%')
+            </if>
+            <if test="beginAdmissionTime != null and beginAdmissionTime != ''">
+                and p.admission_time <![CDATA[>=]]> #{beginAdmissionTime}
+            </if>
+            <if test="endAdmissionTime != null and endAdmissionTime != ''">
+                and p.admission_time <![CDATA[<=]]> #{endAdmissionTime}
+            </if>
+        </where>
+        order by p.admission_time desc, p.patient_id desc
+    </select>
+
+    <select id="selectPatientById" resultMap="OaPatientResult">
+        <include refid="selectPatientVo" />
+        where p.patient_id = #{patientId}
+    </select>
+
+    <select id="selectCaseList" resultMap="OaPatientCaseResult">
+        <include refid="selectCaseVo" />
+        <where>
+            <if test="keyword != null and keyword != ''">
+                and (
+                    p.patient_name like concat('%', #{keyword}, '%')
+                    or p.patient_no like concat('%', #{keyword}, '%')
+                    or c.case_no like concat('%', #{keyword}, '%')
+                    or c.case_title like concat('%', #{keyword}, '%')
+                    or c.diagnosis like concat('%', #{keyword}, '%')
+                )
+            </if>
+            <if test="caseStatus != null and caseStatus != ''">
+                and c.case_status = #{caseStatus}
+            </if>
+            <if test="deptId != null">
+                and c.dept_id = #{deptId}
+            </if>
+            <if test="doctorName != null and doctorName != ''">
+                and c.doctor_name like concat('%', #{doctorName}, '%')
+            </if>
+            <if test="patientId != null">
+                and c.patient_id = #{patientId}
+            </if>
+        </where>
+        order by c.visit_time desc, c.case_id desc
+    </select>
+
+    <select id="selectCaseById" resultMap="OaPatientCaseResult">
+        <include refid="selectCaseVo" />
+        where c.case_id = #{caseId}
+    </select>
+
+    <select id="selectPatientDeptOptions" resultMap="OaPatientResult">
+        select distinct dept_id, dept_name
+        from oa_patient
+        where dept_id is not null
+          and dept_name is not null
+          and dept_name != ''
+        order by dept_id asc
+    </select>
+
+    <select id="countPatientByStatus" resultType="int">
+        select count(1)
+        from oa_patient
+        where patient_status = #{patientStatus}
+    </select>
+
+    <select id="countCaseByStatus" resultType="int">
+        select count(1)
+        from oa_patient_case
+        where case_status = #{caseStatus}
+    </select>
+
+    <insert id="insertAccessLog" parameterType="com.hospitaloa.oa.patient.domain.OaPatientAccessLog" useGeneratedKeys="true" keyProperty="accessLogId">
+        insert into oa_patient_access_log (
+            patient_id, case_id, access_type, operator_id, operator_name, dept_id, dept_name, access_time, access_ip, remark
+        ) values (
+            #{patientId}, #{caseId}, #{accessType}, #{operatorId}, #{operatorName}, #{deptId}, #{deptName}, sysdate(), #{accessIp}, #{remark}
+        )
+    </insert>
+</mapper>

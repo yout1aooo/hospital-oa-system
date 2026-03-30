@@ -3,6 +3,7 @@ package com.hospitaloa.system.api.domain;
 import java.util.Date;
 import java.util.List;
 import javax.validation.constraints.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import com.hospitaloa.common.core.annotation.Excel;
@@ -113,6 +114,7 @@ public class SysUser extends BaseEntity
         this.userId = userId;
     }
 
+    @JsonIgnore
     public boolean isAdmin()
     {
         return UserConstants.isAdmin(userId);

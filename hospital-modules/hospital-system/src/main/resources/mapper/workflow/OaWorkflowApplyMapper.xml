@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.workflow.mapper.OaWorkflowApplyMapper">
+
+    <resultMap id="OaWorkflowApplyResult" type="com.hospitaloa.oa.workflow.domain.OaWorkflowApply">
+        <id property="applyId" column="apply_id" />
+        <result property="processType" column="process_type" />
+        <result property="processTypeLabel" column="process_type_label" />
+        <result property="title" column="title" />
+        <result property="formNo" column="form_no" />
+        <result property="applicantId" column="applicant_id" />
+        <result property="applicantName" column="applicant_name" />
+        <result property="currentHandlerId" column="current_handler_id" />
+        <result property="currentHandlerName" column="current_handler_name" />
+        <result property="status" column="status" />
+        <result property="statusLabel" column="status_label" />
+        <result property="reason" column="reason" />
+        <result property="amount" column="amount" />
+        <result property="startDate" column="start_date" />
+        <result property="endDate" column="end_date" />
+        <result property="submitTime" column="submit_time" />
+        <result property="createBy" column="create_by" />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy" column="update_by" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectApplyVo">
+        select
+            a.apply_id,
+            a.process_type,
+            case a.process_type when 'leave' then '请假申请' when 'expense' then '报销申请' else a.process_type end as process_type_label,
+            a.title,
+            a.form_no,
+            a.applicant_id,
+            a.applicant_name,
+            a.current_handler_id,
+            a.current_handler_name,
+            a.status,
+            case a.status when '审批中' then '审批中' when '已完成' then '已完成' when '已驳回' then '已驳回' else a.status end as status_label,
+            a.reason,
+            a.amount,
+            a.start_date,
+            a.end_date,
+            a.submit_time,
+            a.create_by,
+            a.create_time,
+            a.update_by,
+            a.update_time
+        from oa_workflow_apply a
+    </sql>
+
+    <select id="selectApplyList" resultMap="OaWorkflowApplyResult">
+        <include refid="selectApplyVo" />
+        <where>
+            <choose>
+                <when test="tab == 'todo'">
+                    and a.status = '审批中'
+                    and a.current_handler_id = #{userId}
+                </when>
+                <when test="tab == 'done'">
+                    and exists (
+                        select 1
+                        from oa_workflow_task t
+                        where t.apply_id = a.apply_id
+                          and t.assignee_id = #{userId}
+                          and t.task_status in ('已通过', '已驳回')
+                    )
+                </when>
+                <otherwise>
+                    and a.applicant_id = #{userId}
+                </otherwise>
+            </choose>
+            <if test="processType != null and processType != ''">
+                and a.process_type = #{processType}
+            </if>
+            <if test="title != null and title != ''">
+                and a.title like concat('%', #{title}, '%')
+            </if>
+        </where>
+        order by a.apply_id desc
+    </select>
+
+    <select id="selectApplyById" resultMap="OaWorkflowApplyResult">
+        <include refid="selectApplyVo" />
+        where a.apply_id = #{applyId}
+        <if test="userId != null">
+            and (
+                a.applicant_id = #{userId}
+                or a.current_handler_id = #{userId}
+                or exists (
+                    select 1
+                    from oa_workflow_task t
+                    where t.apply_id = a.apply_id
+                      and t.assignee_id = #{userId}
+                )
+            )
+        </if>
+    </select>
+
+    <insert id="insertApply" parameterType="com.hospitaloa.oa.workflow.domain.OaWorkflowApply" useGeneratedKeys="true" keyProperty="applyId">
+        insert into oa_workflow_apply (
+            process_type, title, form_no, applicant_id, applicant_name,
+            current_handler_id, current_handler_name, status, reason, amount, start_date, end_date,
+            submit_time, create_by, create_time
+        ) values (
+            #{processType}, #{title}, #{formNo}, #{applicantId}, #{applicantName},
+            #{currentHandlerId}, #{currentHandlerName}, #{status}, #{reason}, #{amount}, #{startDate}, #{endDate},
+            #{submitTime}, #{createBy}, sysdate()
+        )
+    </insert>
+
+    <update id="updateApply" parameterType="com.hospitaloa.oa.workflow.domain.OaWorkflowApply">
+        update oa_workflow_apply
+        <set>
+            <if test="title != null">title = #{title},</if>
+            current_handler_id = #{currentHandlerId},
+            <if test="currentHandlerName != null">current_handler_name = #{currentHandlerName},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="reason != null">reason = #{reason},</if>
+            <if test="amount != null">amount = #{amount},</if>
+            <if test="startDate != null">start_date = #{startDate},</if>
+            <if test="endDate != null">end_date = #{endDate},</if>
+            <if test="submitTime != null">submit_time = #{submitTime},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = sysdate()
+        </set>
+        where apply_id = #{applyId}
+    </update>
+</mapper>

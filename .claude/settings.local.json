@@ -25,7 +25,15 @@
       "Bash(rm:*)",
       "Bash(ls node_modules:*)",
       "Bash(curl:*)",
-      "Bash(do:*)"
+      "Bash(do:*)",
+      "Bash(npm run:*)",
+      "Bash(npm:*)",
+      "Bash(python3:*)",
+      "Bash(python3.exe -c \"print\\(''hello''\\)\")",
+      "Bash(py -c \"print\\(''hello''\\)\")",
+      "Bash(\"/c/Users/42080/AppData/Local/Microsoft/WindowsApps/python3\" -c \"print\\('hello'\\)\" 2>&1)",
+      "Read(//d/Capstone_project/hospital-oa-system/{gsub\\(/# spring配置/nspring:/n  data:/n    redis:/, \"\"\"\"/# spring配置/nspring:/n  servlet:/n    multipart:/n      max-file-size: 20MB/n      max-request-size: 20MB/n  data:/**)",
+      "Bash(mv /tmp/hospital-config-temp.sql \"D:/Capstone_project/hospital-oa-system/sql/hospital-config_20260311.sql\")"
     ]
   }
 }

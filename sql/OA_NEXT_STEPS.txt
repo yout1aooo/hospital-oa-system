@@ -1,0 +1,41 @@
+按当前仓库状态，医院 OA 下一步建议按以下顺序推进：
+
+1. SQL 脚本先分层治理
+- 基础脚本：`sql/00_core_schema.sql`
+- Quartz 脚本：`sql/10_quartz_schema.sql`
+- 当前运行中的 OA 表：`sql/20_oa_runtime_schema.sql`
+- 演示数据：`sql/21_oa_seed_demo.sql`
+- 未来预留表：`sql/90_oa_future_schema.sql`
+- 现阶段不建议删除旧脚本 `sql/hospital_20250523.sql`、`sql/hospital_oa_phase1.sql`、`sql/quartz.sql`，先保留兼容。
+
+2. 第一优先级：补齐日程提醒
+- 现状：菜单和表已预留，但无真实前后端闭环。
+- 建议复用会议/任务模式，在 `hospital-system` 中新增 `oa.collab.schedule` 领域。
+- 前端优先扩展 `hospital-ui/src/views/oa/collab/index.vue`，不要再开新入口。
+
+3. 第二优先级：审批中心扩展
+- 先解决当前硬编码问题：真实登录用户、真实审批人、按组织关系路由。
+- 再扩展到采购申请、用印申请等具体医院表单。
+- `oa_process_*` 表暂不直接全面启用，先作为二期流程抽象基础。
+
+4. 第三优先级：会议/任务/文档闭环增强
+- 会议：编辑、取消、冲突校验、参会人。
+- 任务：按用户指派、我的任务、逾期提醒、转派/编辑。
+- 文档：分类管理、发布/归档、附件上传、阅读统计。
+
+5. job 模块建议
+- 当前不建议把 `hospital-job` 直接并入 `hospital-system`。
+- 短期策略：保留独立，用它为 OA 提供提醒与催办。
+- 后续若要合并，采用 phased merge，而不是立即硬迁移。
+
+6. hospital-oa-collab 模块建议
+- 当前真实会议/任务代码在 `hospital-system`，`hospital-oa-collab` 更像空壳。
+- 本轮不建议同步做模块拆分/迁移。
+- 先冻结新功能进入 `hospital-oa-collab`，后续再决定保留或清理。
+
+建议执行顺序：
+A. 先稳定 SQL 结构
+B. 再补 schedule
+C. 再补 workflow 扩展
+D. 再补 meeting/task/document 闭环
+E. 最后再接 job 做提醒联动

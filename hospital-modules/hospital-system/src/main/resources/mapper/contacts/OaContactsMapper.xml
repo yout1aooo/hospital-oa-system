@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.contacts.mapper.OaContactsMapper">
+
+    <resultMap id="OaStaffContactResult" type="com.hospitaloa.oa.contacts.domain.OaStaffContact">
+        <id property="userId" column="user_id" />
+        <result property="deptId" column="dept_id" />
+        <result property="deptName" column="dept_name" />
+        <result property="userName" column="user_name" />
+        <result property="nickName" column="nick_name" />
+        <result property="phonenumber" column="phonenumber" />
+        <result property="email" column="email" />
+        <result property="staffNo" column="staff_no" />
+        <result property="jobTitle" column="job_title" />
+        <result property="officePhone" column="office_phone" />
+        <result property="emergencyPhone" column="emergency_phone" />
+        <result property="campusName" column="campus_name" />
+        <result property="dutyName" column="duty_name" />
+        <result property="specialty" column="specialty" />
+    </resultMap>
+
+    <resultMap id="OaDeptContactResult" type="com.hospitaloa.oa.contacts.domain.OaDeptContact">
+        <id property="deptId" column="dept_id" />
+        <result property="parentId" column="parent_id" />
+        <result property="deptName" column="dept_name" />
+        <result property="leader" column="leader" />
+        <result property="phone" column="phone" />
+        <result property="email" column="email" />
+        <result property="deptType" column="dept_type" />
+        <result property="campusName" column="campus_name" />
+        <result property="officeLocation" column="office_location" />
+        <result property="servicePhone" column="service_phone" />
+    </resultMap>
+
+    <resultMap id="OaContactGroupResult" type="com.hospitaloa.oa.contacts.domain.OaContactGroup">
+        <id property="groupId" column="group_id" />
+        <result property="groupName" column="group_name" />
+        <result property="ownerId" column="owner_id" />
+        <result property="memberIds" column="member_ids" />
+        <result property="remark" column="remark" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <sql id="selectStaffColumns">
+        select u.user_id,
+               u.dept_id,
+               d.dept_name,
+               u.user_name,
+               u.nick_name,
+               u.phonenumber,
+               u.email,
+               ifnull(p.staff_no, '') as staff_no,
+               ifnull(p.job_title, '') as job_title,
+               ifnull(p.office_phone, '') as office_phone,
+               ifnull(p.emergency_phone, '') as emergency_phone,
+               ifnull(p.campus_name, '') as campus_name,
+               ifnull(p.duty_name, '') as duty_name,
+               ifnull(p.specialty, '') as specialty
+        from sys_user u
+        left join sys_dept d on u.dept_id = d.dept_id
+        left join oa_staff_profile p on u.user_id = p.user_id
+    </sql>
+
+    <select id="selectStaffList" resultMap="OaStaffContactResult">
+        <include refid="selectStaffColumns" />
+        <where>
+            u.del_flag = '0'
+            and u.status = '0'
+            <if test="deptId != null">
+                and u.dept_id = #{deptId}
+            </if>
+            <if test="groupId != null">
+                and exists (
+                    select 1
+                    from oa_contact_group g
+                    where g.group_id = #{groupId}
+                      and g.owner_id = #{ownerId}
+                      and concat(',', ifnull(g.member_ids, ''), ',') like concat('%,', cast(u.user_id as char), ',%')
+                )
+            </if>
+            <if test="keyword != null and keyword != ''">
+                and (
+                    u.user_name like concat('%', #{keyword}, '%')
+                    or u.nick_name like concat('%', #{keyword}, '%')
+                    or d.dept_name like concat('%', #{keyword}, '%')
+                    or p.staff_no like concat('%', #{keyword}, '%')
+                    or p.job_title like concat('%', #{keyword}, '%')
+                    or u.phonenumber like concat('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+        order by d.order_num, u.user_id desc
+    </select>
+
+    <select id="selectDeptList" resultMap="OaDeptContactResult">
+        select d.dept_id,
+               d.parent_id,
+               d.dept_name,
+               d.leader,
+               d.phone,
+               d.email,
+               ifnull(e.dept_type, '') as dept_type,
+               ifnull(e.campus_name, '') as campus_name,
+               ifnull(e.office_location, '') as office_location,
+               ifnull(e.service_phone, '') as service_phone
+        from sys_dept d
+        left join oa_department_ext e on d.dept_id = e.dept_id
+        where d.del_flag = '0'
+          <if test="keyword != null and keyword != ''">
+              and (
+                d.dept_name like concat('%', #{keyword}, '%')
+                or d.leader like concat('%', #{keyword}, '%')
+                or e.campus_name like concat('%', #{keyword}, '%')
+              )
+          </if>
+        order by d.parent_id, d.order_num
+    </select>
+
+    <select id="selectGroupList" resultMap="OaContactGroupResult">
+        select group_id, group_name, owner_id, member_ids, remark, create_time, update_time
+        from oa_contact_group
+        where owner_id = #{ownerId}
+        order by group_id desc
+    </select>
+
+    <select id="selectGroupMembers" resultMap="OaStaffContactResult">
+        <include refid="selectStaffColumns" />
+        inner join oa_contact_group g on g.group_id = #{groupId} and g.owner_id = #{ownerId}
+        <where>
+            u.del_flag = '0'
+            and u.status = '0'
+            and concat(',', ifnull(g.member_ids, ''), ',') like concat('%,', cast(u.user_id as char), ',%')
+        </where>
+        order by d.order_num, u.user_id desc
+    </select>
+
+    <insert id="insertGroup" parameterType="com.hospitaloa.oa.contacts.domain.OaContactGroup" useGeneratedKeys="true" keyProperty="groupId">
+        insert into oa_contact_group (
+            group_name, owner_id, member_ids, remark, create_time, update_time
+        ) values (
+            #{groupName}, #{ownerId}, #{memberIds}, #{remark}, sysdate(), sysdate()
+        )
+    </insert>
+</mapper>

@@ -4,6 +4,8 @@ server:
 
 # Spring
 spring:
+  codec:
+    max-in-memory-size: 20MB
   application:
     # 应用名称
     name: hospital-gateway
