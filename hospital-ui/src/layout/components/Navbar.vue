@@ -117,18 +117,20 @@ export default {
 }
 
 .navbar {
-  height: 50px;
+  height: 58px;
   overflow: hidden;
   position: relative;
-  background: #fff;
-  box-shadow: 0 1px 4px rgba(0,21,41,.08);
+  background: rgba(255, 255, 255, 0.82);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  backdrop-filter: blur(18px);
   display: flex;
   align-items: center;
-  // padding: 0 8px;
+  padding: 0 12px 0 4px;
   box-sizing: border-box;
 
   .hamburger-container {
-    line-height: 46px;
+    line-height: 58px;
     height: 100%;
     cursor: pointer;
     transition: background .3s;
@@ -137,9 +139,10 @@ export default {
     align-items: center;
     flex-shrink: 0;
     margin-right: 8px;
+    border-radius: 14px;
 
     &:hover {
-      background: rgba(0, 0, 0, .025)
+      background: rgba(37, 99, 235, 0.08)
     }
   }
 
@@ -168,7 +171,7 @@ export default {
 
   .right-menu {
     height: 100%;
-    line-height: 50px;
+    line-height: 58px;
     display: flex;
     align-items: center;
     margin-left: auto;
@@ -182,15 +185,16 @@ export default {
       padding: 0 8px;
       height: 100%;
       font-size: 18px;
-      color: #5a5e66;
+      color: #475569;
       vertical-align: text-bottom;
+      border-radius: 12px;
 
       &.hover-effect {
         cursor: pointer;
         transition: background .3s;
 
         &:hover {
-          background: rgba(0, 0, 0, .025)
+          background: rgba(37, 99, 235, 0.08)
         }
       }
     }
@@ -200,7 +204,15 @@ export default {
       padding-right: 0px;
 
       .avatar-wrapper {
-        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        height: 38px;
+        margin-top: 0;
+        padding: 4px 10px 4px 4px;
+        border: 1px solid rgba(226, 232, 240, 0.88);
+        border-radius: 999px;
+        background: rgba(248, 250, 252, 0.86);
         right: 8px;
         position: relative;
 
@@ -209,14 +221,16 @@ export default {
           width: 30px;
           height: 30px;
           border-radius: 50%;
+          box-shadow: 0 0 0 2px #ffffff;
         }
 
         .user-nickname{
           position: relative;
-          bottom: 10px;
-          left: 2px;
+          bottom: 0;
+          left: 0;
           font-size: 14px;
           font-weight: bold;
+          color: #334155;
         }
 
         .el-icon-caret-bottom {

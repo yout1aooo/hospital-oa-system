@@ -1,25 +1,25 @@
 <template>
   <div class="app-container oa-page">
-    <el-card shadow="never" class="summary-card">
-      <div slot="header" class="clearfix">
-        <span>审批中心</span>
+    <section class="oa-module-hero workflow-hero">
+      <div>
+        <div class="oa-module-kicker"><i class="el-icon-s-check" /> Workflow</div>
+        <h1 class="oa-module-title">审批中心</h1>
+        <p class="oa-module-subtitle">把请假、报销等院内流程按申请、待办、已办归口呈现，审批状态和流转人员一屏可见。</p>
       </div>
-      <el-alert
-        title="当前已接入请假、报销第一版申请流程，并支持审批通过、驳回与重新提交。"
-        type="success"
-        :closable="false"
-        show-icon />
-      <el-row :gutter="16" class="summary-row">
-        <el-col v-for="item in summaries" :key="item.label" :xs="24" :sm="8">
-          <div class="summary-item">
-            <div class="summary-value">{{ item.value }}</div>
-            <div class="summary-label">{{ item.label }}</div>
-          </div>
-        </el-col>
-      </el-row>
-    </el-card>
+      <div class="oa-module-actions">
+        <el-button v-hasPermi="['oa:workflow:apply:add']" type="primary" icon="el-icon-edit-outline" @click="openDialog('leave')">发起请假</el-button>
+        <el-button v-hasPermi="['oa:workflow:apply:add']" type="warning" icon="el-icon-tickets" @click="openDialog('expense')">发起报销</el-button>
+      </div>
+    </section>
 
-    <el-card shadow="never" class="query-card">
+    <div class="oa-summary-grid three">
+      <div v-for="item in summaries" :key="item.label" class="oa-stat-item">
+        <div class="oa-stat-value">{{ item.value }}</div>
+        <div class="oa-stat-label">{{ item.label }}</div>
+      </div>
+    </div>
+
+    <section class="oa-toolbar-card">
       <el-form :inline="true" :model="queryParams" size="small">
         <el-form-item label="流程类型">
           <el-select v-model="queryParams.processType" placeholder="全部类型" clearable>
@@ -32,39 +32,61 @@
         <el-form-item>
           <el-button type="primary" size="mini" icon="el-icon-search" @click="getList">查询</el-button>
           <el-button size="mini" icon="el-icon-refresh" @click="resetQuery">重置</el-button>
-          <el-button v-hasPermi="['oa:workflow:apply:add']" type="success" size="mini" icon="el-icon-plus" @click="openDialog('leave')">发起请假</el-button>
-          <el-button v-hasPermi="['oa:workflow:apply:add']" type="warning" size="mini" icon="el-icon-plus" @click="openDialog('expense')">发起报销</el-button>
         </el-form-item>
       </el-form>
+    </section>
 
-      <el-tabs v-model="queryParams.tab" @tab-click="handleTabChange">
+    <section class="oa-section-card">
+      <div class="oa-section-head">
+        <div>
+          <h2 class="oa-section-title">流程队列</h2>
+          <div class="oa-section-note">{{ currentTabLabel }} · {{ applyList.length }} 条记录</div>
+        </div>
+      </div>
+
+      <el-tabs v-model="queryParams.tab" class="oa-tabs" @tab-click="handleTabChange">
         <el-tab-pane label="我的申请" name="apply" />
         <el-tab-pane label="我的待办" name="todo" />
         <el-tab-pane label="我的已办" name="done" />
       </el-tabs>
 
-      <el-table v-loading="loading" :data="applyList">
-        <el-table-column label="单号" prop="formNo" min-width="170" />
-        <el-table-column label="流程类型" prop="processTypeLabel" width="110" />
-        <el-table-column label="标题" prop="title" min-width="220" show-overflow-tooltip />
-        <el-table-column label="申请人" prop="applicantName" width="100" />
-        <el-table-column label="当前环节" prop="currentHandlerName" width="140" />
-        <el-table-column label="状态" prop="statusLabel" width="100">
-          <template slot-scope="scope">
-            <el-tag :type="tagType(scope.row.status)">{{ scope.row.statusLabel }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="提交时间" prop="submitTime" width="180" />
-        <el-table-column label="操作" width="260" align="center">
-          <template slot-scope="scope">
-            <el-button type="text" size="mini" @click="showDetail(scope.row)">详情</el-button>
-            <el-button v-if="queryParams.tab === 'todo' && hasTodoActionPermission" type="text" size="mini" @click="handleApprove(scope.row)">通过</el-button>
-            <el-button v-if="queryParams.tab === 'todo' && hasTodoActionPermission" type="text" size="mini" @click="handleReject(scope.row)">驳回</el-button>
-            <el-button v-if="canResubmit(scope.row)" type="text" size="mini" @click="openResubmitDialog(scope.row)">重新提交</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+      <div v-loading="loading">
+        <div v-if="applyList.length" class="oa-record-grid workflow-record-grid">
+          <article v-for="item in applyList" :key="item.applyId" class="oa-record-card workflow-card">
+            <div class="oa-record-head">
+              <div class="workflow-title-block">
+                <div class="oa-record-title">{{ item.title || '-' }}</div>
+                <div class="oa-record-code">{{ item.formNo || '-' }}</div>
+              </div>
+              <el-tag size="mini" :type="tagType(item.status)">{{ item.statusLabel || item.status || '-' }}</el-tag>
+            </div>
+            <div class="oa-record-body">
+              <div class="oa-meta-row">
+                <i class="el-icon-s-operation" />
+                <span class="oa-meta-text">{{ item.processTypeLabel || '-' }}</span>
+              </div>
+              <div class="oa-meta-row">
+                <i class="el-icon-user" />
+                <span class="oa-meta-text">{{ item.applicantName || '-' }} ｜ {{ item.currentHandlerName || '暂无处理人' }}</span>
+              </div>
+              <div class="oa-meta-row">
+                <i class="el-icon-time" />
+                <span class="oa-meta-text">{{ item.submitTime || '-' }}</span>
+              </div>
+            </div>
+            <div class="oa-action-row">
+              <el-button type="text" size="mini" @click="showDetail(item)">详情</el-button>
+              <el-button v-if="queryParams.tab === 'todo' && hasTodoActionPermission" type="text" size="mini" @click="handleApprove(item)">通过</el-button>
+              <el-button v-if="queryParams.tab === 'todo' && hasTodoActionPermission" type="text" size="mini" @click="handleReject(item)">驳回</el-button>
+              <el-button v-if="canResubmit(item)" type="text" size="mini" @click="openResubmitDialog(item)">重新提交</el-button>
+            </div>
+          </article>
+        </div>
+        <div v-else class="oa-empty-wrap">
+          <el-empty description="暂无审批记录" :image-size="90" />
+        </div>
+      </div>
+    </section>
 
     <el-dialog :title="dialogTitle" :visible.sync="dialogOpen" width="620px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="90px">
@@ -191,6 +213,14 @@ export default {
     }
   },
   computed: {
+    currentTabLabel() {
+      const labelMap = {
+        apply: '我的申请',
+        todo: '我的待办',
+        done: '我的已办'
+      }
+      return labelMap[this.queryParams.tab] || '流程记录'
+    },
     dialogTitle() {
       return this.form.applyId ? (this.form.processType === 'leave' ? '重新提交请假申请' : '重新提交报销申请') : (this.form.processType === 'leave' ? '发起请假申请' : '发起报销申请')
     },
@@ -380,31 +410,8 @@ export default {
 
 <style scoped lang="scss">
 .oa-page {
-  .summary-card,
-  .query-card {
-    margin-bottom: 20px;
-  }
-
-  .summary-row {
-    margin-top: 16px;
-  }
-
-  .summary-item {
-    padding: 16px;
-    border-radius: 10px;
-    background: #f5f7fa;
-    text-align: center;
-  }
-
-  .summary-value {
-    font-size: 24px;
-    font-weight: 600;
-    color: #409eff;
-  }
-
-  .summary-label {
-    margin-top: 8px;
-    color: #606266;
+  .workflow-title-block {
+    min-width: 0;
   }
 
   .detail-section {
@@ -428,6 +435,14 @@ export default {
   .record-meta {
     color: #606266;
     line-height: 1.8;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .oa-page {
+    .workflow-record-grid {
+      grid-template-columns: 1fr;
+    }
   }
 }
 </style>

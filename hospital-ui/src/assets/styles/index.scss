@@ -7,10 +7,13 @@
 
 body {
   height: 100%;
+  margin: 0;
   -moz-osx-font-smoothing: grayscale;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+  font-family: Inter, "Helvetica Neue", Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
+  color: #1f2937;
+  background: #f4f7fb;
 }
 
 label {
@@ -24,6 +27,9 @@ html {
 
 #app {
   height: 100%;
+  background:
+    repeating-linear-gradient(135deg, rgba(15, 118, 110, 0.035) 0, rgba(15, 118, 110, 0.035) 1px, transparent 1px, transparent 18px),
+    linear-gradient(180deg, #f8fbff 0%, #eef3f9 100%);
 }
 
 *,
@@ -121,7 +127,7 @@ aside {
 
 //main-container全局样式
 .app-container {
-  padding: 20px;
+  padding: 24px;
 }
 
 .components-container {

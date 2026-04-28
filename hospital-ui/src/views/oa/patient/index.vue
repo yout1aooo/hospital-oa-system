@@ -1,25 +1,24 @@
 <template>
   <div class="app-container oa-page">
-    <el-card shadow="never" class="summary-card" v-loading="loadingWorkbench">
-      <div slot="header" class="clearfix">
-        <span>患者病例查询</span>
+    <section class="oa-module-hero">
+      <div>
+        <div class="oa-module-kicker"><i class="el-icon-first-aid-kit" /> Patient</div>
+        <h1 class="oa-module-title">患者病例查询</h1>
+        <p class="oa-module-subtitle">面向院内办公协同的患者主档和病例检索，列表脱敏展示，详情访问继续保留审计记录。</p>
       </div>
-      <el-alert
-        title="当前提供患者主档、病例记录与详情查看，详情访问自动记录审计日志。"
-        type="success"
-        :closable="false"
-        show-icon />
-      <el-row :gutter="16" class="summary-row">
-        <el-col v-for="item in summaries" :key="item.label" :xs="24" :sm="6">
-          <div class="summary-item">
-            <div class="summary-value">{{ item.value }}</div>
-            <div class="summary-label">{{ item.label }}</div>
-          </div>
-        </el-col>
-      </el-row>
-    </el-card>
+      <div class="oa-module-actions">
+        <el-button type="primary" icon="el-icon-search" @click="getCurrentList">刷新数据</el-button>
+      </div>
+    </section>
 
-    <el-card shadow="never" class="query-card">
+    <div class="oa-summary-grid" v-loading="loadingWorkbench">
+      <div v-for="item in summaries" :key="item.label" class="oa-stat-item">
+        <div class="oa-stat-value">{{ item.value }}</div>
+        <div class="oa-stat-label">{{ item.label }}</div>
+      </div>
+    </div>
+
+    <section class="oa-toolbar-card">
       <el-form :inline="true" :model="queryParams" size="small">
         <el-form-item label="关键词">
           <el-input v-model="queryParams.keyword" placeholder="患者姓名/编号/病例号" clearable @keyup.enter.native="getCurrentList" />
@@ -56,55 +55,99 @@
           <el-button size="mini" icon="el-icon-refresh" @click="resetQuery">重置</el-button>
         </el-form-item>
       </el-form>
+    </section>
 
-      <el-tabs v-model="activeTab" @tab-click="handleTabChange">
+    <section class="oa-section-card">
+      <div class="oa-section-head">
+        <div>
+          <h2 class="oa-section-title">诊疗档案</h2>
+          <div class="oa-section-note">{{ activeTabLabel }} · {{ activeListCount }} 条</div>
+        </div>
+      </div>
+
+      <el-tabs v-model="activeTab" class="oa-tabs" @tab-click="handleTabChange">
         <el-tab-pane v-if="hasPatientTab" label="患者查询" name="patient" />
         <el-tab-pane v-if="hasCaseTab" label="病例查询" name="case" />
       </el-tabs>
 
-      <el-table v-show="activeTab === 'patient'" v-loading="loadingList" :data="patientList">
-        <el-table-column label="患者编号" prop="patientNo" width="150" />
-        <el-table-column label="姓名" prop="patientName" width="100" />
-        <el-table-column label="性别" prop="genderLabel" width="70" />
-        <el-table-column label="身份证" prop="idCardNo" width="170" />
-        <el-table-column label="手机号" prop="phoneNo" width="130" />
-        <el-table-column label="科室" prop="deptName" width="110" />
-        <el-table-column label="主治医生" prop="attendingDoctorName" width="110" />
-        <el-table-column label="状态" prop="patientStatusLabel" width="100">
-          <template slot-scope="scope">
-            <el-tag :type="patientTagType(scope.row.patientStatus)">{{ scope.row.patientStatusLabel }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="病例数" prop="caseCount" width="80" />
-        <el-table-column label="入院时间" prop="admissionTime" width="180" />
-        <el-table-column label="操作" width="100" align="center">
-          <template slot-scope="scope">
-            <el-button type="text" size="mini" @click="showPatientDetail(scope.row)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div v-loading="loadingList">
+        <div v-show="activeTab === 'patient'">
+          <div v-if="patientList.length" class="oa-record-grid patient-grid">
+            <article v-for="item in patientList" :key="item.patientId" class="oa-record-card patient-card">
+              <div class="oa-record-head">
+                <div>
+                  <div class="oa-record-title">{{ item.patientName || '-' }}</div>
+                  <div class="oa-record-code">{{ item.patientNo || '-' }}</div>
+                </div>
+                <el-tag size="mini" :type="patientTagType(item.patientStatus)">{{ item.patientStatusLabel || '-' }}</el-tag>
+              </div>
+              <div class="oa-record-body">
+                <div class="oa-meta-row">
+                  <i class="el-icon-user" />
+                  <span class="oa-meta-text">{{ item.genderLabel || '-' }} ｜ 病例 {{ item.caseCount || 0 }} 份</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-office-building" />
+                  <span class="oa-meta-text">{{ item.deptName || '-' }} ｜ {{ item.attendingDoctorName || '-' }}</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-postcard" />
+                  <span class="oa-meta-text">{{ maskIdCard(item.idCardNo) }} ｜ {{ maskPhone(item.phoneNo) }}</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-date" />
+                  <span class="oa-meta-text">入院 {{ item.admissionTime || '-' }}</span>
+                </div>
+              </div>
+              <div class="oa-action-row">
+                <el-button type="text" size="mini" @click="showPatientDetail(item)">查看详情</el-button>
+              </div>
+            </article>
+          </div>
+          <div v-else class="oa-empty-wrap">
+            <el-empty description="暂无患者数据" :image-size="90" />
+          </div>
+        </div>
 
-      <el-table v-show="activeTab === 'case'" v-loading="loadingList" :data="caseList">
-        <el-table-column label="病例编号" prop="caseNo" width="160" />
-        <el-table-column label="病例标题" prop="caseTitle" min-width="180" show-overflow-tooltip />
-        <el-table-column label="患者姓名" prop="patientName" width="100" />
-        <el-table-column label="就诊类型" prop="visitTypeLabel" width="100" />
-        <el-table-column label="科室" prop="deptName" width="110" />
-        <el-table-column label="医生" prop="doctorName" width="100" />
-        <el-table-column label="状态" prop="caseStatusLabel" width="100">
-          <template slot-scope="scope">
-            <el-tag :type="caseTagType(scope.row.caseStatus)">{{ scope.row.caseStatusLabel }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="诊断" prop="diagnosis" min-width="180" show-overflow-tooltip />
-        <el-table-column label="就诊时间" prop="visitTime" width="180" />
-        <el-table-column label="操作" width="100" align="center">
-          <template slot-scope="scope">
-            <el-button type="text" size="mini" @click="showCaseDetail(scope.row)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+        <div v-show="activeTab === 'case'">
+          <div v-if="caseList.length" class="oa-record-grid patient-grid">
+            <article v-for="item in caseList" :key="item.caseId" class="oa-record-card case-card">
+              <div class="oa-record-head">
+                <div>
+                  <div class="oa-record-title">{{ item.caseTitle || '-' }}</div>
+                  <div class="oa-record-code">{{ item.caseNo || '-' }}</div>
+                </div>
+                <el-tag size="mini" :type="caseTagType(item.caseStatus)">{{ item.caseStatusLabel || '-' }}</el-tag>
+              </div>
+              <div class="oa-record-body">
+                <div class="oa-meta-row">
+                  <i class="el-icon-user" />
+                  <span class="oa-meta-text">{{ item.patientName || '-' }} ｜ {{ item.visitTypeLabel || '-' }}</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-first-aid-kit" />
+                  <span class="oa-meta-text">{{ item.deptName || '-' }} ｜ {{ item.doctorName || '-' }}</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-document-checked" />
+                  <span class="oa-meta-text">{{ item.diagnosis || '暂无诊断' }}</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-time" />
+                  <span class="oa-meta-text">{{ item.visitTime || '-' }}</span>
+                </div>
+              </div>
+              <div class="oa-action-row">
+                <el-button type="text" size="mini" @click="showCaseDetail(item)">查看详情</el-button>
+              </div>
+            </article>
+          </div>
+          <div v-else class="oa-empty-wrap">
+            <el-empty description="暂无病例数据" :image-size="90" />
+          </div>
+        </div>
+      </div>
+    </section>
 
     <el-dialog title="患者详情" :visible.sync="patientDetailOpen" width="880px" append-to-body>
       <div v-if="patientDetail">
@@ -200,6 +243,12 @@ export default {
     },
     hasCaseTab() {
       return checkPermi(['oa:patient:case:list', 'oa:patient:case:query'])
+    },
+    activeTabLabel() {
+      return this.activeTab === 'case' ? '病例查询' : '患者查询'
+    },
+    activeListCount() {
+      return this.activeTab === 'case' ? this.caseList.length : this.patientList.length
     }
   },
   created() {
@@ -313,6 +362,26 @@ export default {
         this.caseDetailOpen = true
       })
     },
+    maskIdCard(value) {
+      if (!value) {
+        return '-'
+      }
+      const text = String(value)
+      if (text.length <= 8) {
+        return text
+      }
+      return text.slice(0, 4) + '********' + text.slice(-4)
+    },
+    maskPhone(value) {
+      if (!value) {
+        return '-'
+      }
+      const text = String(value)
+      if (text.length < 7) {
+        return text
+      }
+      return text.slice(0, 3) + '****' + text.slice(-4)
+    },
     patientTagType(status) {
       if (status === 'active') {
         return 'success'
@@ -343,33 +412,6 @@ export default {
 
 <style scoped lang="scss">
 .oa-page {
-  .summary-card,
-  .query-card {
-    margin-bottom: 20px;
-  }
-
-  .summary-row {
-    margin-top: 16px;
-  }
-
-  .summary-item {
-    padding: 16px;
-    border-radius: 10px;
-    background: #f5f7fa;
-    text-align: center;
-  }
-
-  .summary-value {
-    font-size: 24px;
-    font-weight: 600;
-    color: #409eff;
-  }
-
-  .summary-label {
-    margin-top: 8px;
-    color: #606266;
-  }
-
   .detail-section {
     margin-top: 20px;
   }

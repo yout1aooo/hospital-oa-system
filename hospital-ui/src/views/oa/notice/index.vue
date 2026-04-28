@@ -1,13 +1,32 @@
 <template>
   <div class="app-container oa-page">
-    <el-row :gutter="20">
-      <el-col :xs="24" :lg="24">
-        <el-card shadow="never" class="query-card" v-loading="documentLoading">
-          <div slot="header" class="clearfix">
-            <span>制度文档</span>
-          </div>
+    <section class="oa-module-hero">
+      <div>
+        <div class="oa-module-kicker"><i class="el-icon-document" /> Documents</div>
+        <h1 class="oa-module-title">制度文档</h1>
+        <p class="oa-module-subtitle">集中处理制度阅读确认、附件查看与文档发布归档，让通知流转和制度留痕更清晰。</p>
+      </div>
+      <div class="oa-module-actions">
+        <el-button v-if="hasDocumentManagePermission" type="primary" icon="el-icon-plus" @click="handleAddDocument" v-hasPermi="['oa:notice:document:add']">新增文档</el-button>
+      </div>
+    </section>
 
-          <el-tabs v-model="documentViewTab">
+    <div class="oa-summary-grid" v-loading="workbenchLoading">
+      <div v-for="item in documentSummary" :key="item.label" class="oa-stat-item">
+        <div class="oa-stat-value">{{ item.value }}</div>
+        <div class="oa-stat-label">{{ item.label }}</div>
+      </div>
+    </div>
+
+    <section class="oa-section-card document-section" v-loading="documentLoading">
+      <div class="oa-section-head">
+        <div>
+          <h2 class="oa-section-title">文档工作台</h2>
+          <div class="oa-section-note">{{ documentViewTab === 'read' ? '阅读中心' : '文档管理' }}</div>
+        </div>
+      </div>
+
+          <el-tabs v-model="documentViewTab" class="oa-tabs">
             <el-tab-pane label="阅读中心" name="read" />
             <el-tab-pane label="文档管理" name="manage" v-if="hasDocumentManagePermission" />
           </el-tabs>
@@ -36,19 +55,34 @@
               </el-form-item>
             </el-form>
 
-            <div v-for="item in documentList" :key="item.documentId" class="doc-item">
-              <div class="doc-header">
-                <div class="panel-title">{{ item.documentTitle }}</div>
-                <el-tag size="mini" :type="readTagType(item.readStatus)">{{ item.readStatusLabel }}</el-tag>
-              </div>
-              <div class="panel-text">{{ item.categoryName || '未分类' }} ｜ {{ item.documentNo || '-' }}</div>
-              <div class="panel-text">{{ item.statusLabel }} ｜ {{ item.publishTime || '-' }}</div>
-              <div class="doc-actions">
-                <el-button type="text" size="mini" @click="showDocumentDetail(item)">详情</el-button>
-                <el-button v-if="item.readStatus !== '2'" type="text" size="mini" @click="handleConfirmDocument(item)" v-hasPermi="['oa:notice:document:query']">确认已读</el-button>
-              </div>
+            <div v-if="documentList.length" class="oa-record-grid">
+              <article v-for="item in documentList" :key="item.documentId" class="oa-record-card doc-item">
+                <div class="oa-record-head">
+                  <div>
+                    <div class="oa-record-title">{{ item.documentTitle }}</div>
+                    <div class="oa-record-code">{{ item.categoryName || '未分类' }} ｜ {{ item.documentNo || '-' }}</div>
+                  </div>
+                  <el-tag size="mini" :type="readTagType(item.readStatus)">{{ item.readStatusLabel }}</el-tag>
+                </div>
+                <div class="oa-record-body">
+                  <div class="oa-meta-row">
+                    <i class="el-icon-folder-opened" />
+                    <span class="oa-meta-text">{{ item.statusLabel || '-' }}</span>
+                  </div>
+                  <div class="oa-meta-row">
+                    <i class="el-icon-time" />
+                    <span class="oa-meta-text">{{ item.publishTime || '-' }}</span>
+                  </div>
+                </div>
+                <div class="oa-action-row">
+                  <el-button type="text" size="mini" @click="showDocumentDetail(item)">详情</el-button>
+                  <el-button v-if="item.readStatus !== '2'" type="text" size="mini" @click="handleConfirmDocument(item)" v-hasPermi="['oa:notice:document:query']">确认已读</el-button>
+                </div>
+              </article>
             </div>
-            <el-empty v-if="!documentList.length" description="暂无制度文档" :image-size="90" />
+            <div v-else class="oa-empty-wrap">
+              <el-empty description="暂无制度文档" :image-size="90" />
+            </div>
           </template>
 
           <template v-else>
@@ -99,9 +133,7 @@
             </el-table>
             <el-empty v-if="!manageDocumentList.length" description="暂无可管理文档" :image-size="90" />
           </template>
-        </el-card>
-      </el-col>
-    </el-row>
+    </section>
 
     <el-dialog :title="documentDialogTitle" :visible.sync="documentDialogOpen" width="760px" append-to-body>
       <el-form ref="documentForm" :model="documentForm" :rules="documentRules" label-width="90px">
@@ -233,6 +265,7 @@ import {
   deleteDocumentAttachment,
   downloadDocumentAttachment,
   getDocument,
+  getDocumentWorkbench,
   getManageDocument,
   listDocument,
   listManageDocument,
@@ -246,11 +279,18 @@ export default {
   name: 'OaNoticeIndex',
   data() {
     return {
+      workbenchLoading: false,
       documentLoading: false,
       attachmentUploading: false,
       documentList: [],
       manageDocumentList: [],
       documentAttachments: [],
+      documentSummary: [
+        { label: '全部文档', value: 0 },
+        { label: '我的未读', value: 0 },
+        { label: '已确认', value: 0 },
+        { label: '管理文档', value: 0 }
+      ],
       documentViewTab: 'read',
       documentDetail: null,
       documentDetailOpen: false,
@@ -316,6 +356,7 @@ export default {
   created() {
     this.documentQuery.tab = this.normalizeDocumentTab(this.$route.query.documentTab)
     this.syncQuery()
+    this.getWorkbench()
     this.getDocumentList()
     if (this.hasDocumentManagePermission) {
       this.getManageDocumentList()
@@ -344,6 +385,16 @@ export default {
         return undefined
       }
       return this.documentStatusMap[status] || status
+    },
+    getWorkbench() {
+      this.workbenchLoading = true
+      getDocumentWorkbench().then(res => {
+        const data = res.data || {}
+        this.documentSummary = data.summary || this.documentSummary
+        this.workbenchLoading = false
+      }).catch(() => {
+        this.workbenchLoading = false
+      })
     },
     syncQuery() {
       const query = { ...this.$route.query }
@@ -439,6 +490,7 @@ export default {
     handleConfirmDocument(row) {
       confirmDocument(row.documentId).then(() => {
         this.$modal.msgSuccess('阅读确认成功')
+        this.getWorkbench()
         this.getDocumentList()
         if (this.documentDetail && this.documentDetail.documentId === row.documentId) {
           this.showDocumentDetail(row)
@@ -494,6 +546,7 @@ export default {
           if (!payload.documentId) {
             this.$modal.msgSuccess('文档已保存，可继续上传附件')
           }
+          this.getWorkbench()
           this.getManageDocumentList()
           this.getDocumentList()
         })
@@ -550,6 +603,7 @@ export default {
         return publishDocument(row.documentId)
       }).then(() => {
         this.$modal.msgSuccess('发布成功')
+        this.getWorkbench()
         this.getManageDocumentList()
         this.getDocumentList()
       }).catch(() => {})
@@ -559,6 +613,7 @@ export default {
         return archiveDocument(row.documentId)
       }).then(() => {
         this.$modal.msgSuccess('归档成功')
+        this.getWorkbench()
         this.getManageDocumentList()
         this.getDocumentList()
       }).catch(() => {})
@@ -568,6 +623,7 @@ export default {
         return delDocument(row.documentId)
       }).then(() => {
         this.$modal.msgSuccess('删除成功')
+        this.getWorkbench()
         this.getManageDocumentList()
         this.getDocumentList()
       }).catch(() => {})
@@ -599,8 +655,10 @@ export default {
 
 <style scoped lang="scss">
 .oa-page {
-  .query-card {
-    margin-bottom: 20px;
+  .document-section {
+    ::v-deep .el-form-item {
+      margin-bottom: 10px;
+    }
   }
 
   .detail-content {
@@ -609,40 +667,9 @@ export default {
     word-break: break-all;
   }
 
-  .doc-item + .doc-item {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid #ebeef5;
-  }
-
-  .doc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 6px;
-  }
-
-  .doc-actions {
-    margin-top: 8px;
-  }
-
-  .panel-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #303133;
-  }
-
-  .panel-text {
-    margin-top: 6px;
-    font-size: 13px;
-    color: #909399;
-    line-height: 1.6;
-  }
-
   .attachment-box {
     border: 1px solid #ebeef5;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 12px;
   }
 
@@ -672,7 +699,7 @@ export default {
     gap: 12px;
     padding: 10px 12px;
     background: #f8f9fb;
-    border-radius: 6px;
+    border-radius: 8px;
   }
 
   .attachment-item--detail {

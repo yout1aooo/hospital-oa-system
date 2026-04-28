@@ -82,8 +82,7 @@ export default {
     activeStyle(tag) {
       if (!this.isActive(tag)) return {}
       return {
-        "background-color": this.theme,
-        "border-color": this.theme
+        "--active-color": this.theme
       }
     },
     isAffix(tag) {
@@ -239,44 +238,45 @@ export default {
 
 <style lang="scss" scoped>
 .tags-view-container {
-  height: 34px;
+  height: 40px;
   width: 100%;
-  background: #fff;
-  border-bottom: 1px solid #d8dce5;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .12), 0 0 3px 0 rgba(0, 0, 0, .04);
+  background: rgba(255, 255, 255, 0.76);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.86);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  backdrop-filter: blur(16px);
   .tags-view-wrapper {
     .tags-view-item {
       display: inline-block;
       position: relative;
       cursor: pointer;
-      height: 26px;
-      line-height: 26px;
-      border: 1px solid #d8dce5;
-      color: #495060;
-      background: #fff;
-      padding: 0 8px;
+      height: 28px;
+      line-height: 28px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: #64748b;
+      background: #f8fafc;
+      padding: 0 12px;
       font-size: 12px;
-      margin-left: 5px;
-      margin-top: 4px;
+      margin-left: 8px;
+      margin-top: 6px;
+      transition: all 0.2s ease;
       &:first-of-type {
-        margin-left: 15px;
+        margin-left: 16px;
       }
       &:last-of-type {
-        margin-right: 15px;
+        margin-right: 16px;
+      }
+      &:hover {
+        color: #2563eb;
+        background: #eff6ff;
       }
       &.active {
-        background-color: #42b983;
+        background: linear-gradient(135deg, var(--active-color, #2563eb), #0ea5e9);
         color: #fff;
-        border-color: #42b983;
+        border-color: transparent;
+        box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
         &::before {
-          content: '';
-          background: #fff;
-          display: inline-block;
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          position: relative;
-          margin-right: 2px;
+          content: none;
         }
       }
     }
@@ -297,7 +297,7 @@ export default {
     font-size: 12px;
     font-weight: 400;
     color: #333;
-    box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, .3);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
     li {
       margin: 0;
       padding: 7px 16px;
