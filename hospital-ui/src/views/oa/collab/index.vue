@@ -1,38 +1,39 @@
 <template>
   <div class="app-container oa-page">
-    <el-card shadow="never" class="summary-card" v-loading="scheduleLoading">
-      <div slot="header" class="clearfix">
-        <span>会议任务日程</span>
+    <section class="oa-module-hero">
+      <div>
+        <div class="oa-module-kicker"><i class="el-icon-date" /> Collaboration</div>
+        <h1 class="oa-module-title">会议任务日程</h1>
+        <p class="oa-module-subtitle">把个人日程、会议室预约和任务督办放在一个协同工作台中，方便按天、按状态推进事项。</p>
       </div>
-      <el-alert
-        title="当前已接入日程提醒、会议管理与任务督办 MVP，支持日程查询、新增、完成，以及会议/任务基础闭环。"
-        type="success"
-        :closable="false"
-        show-icon />
-      <el-row :gutter="16" class="summary-row">
-        <el-col v-for="item in summaries" :key="item.label" :xs="24" :sm="8">
-          <div class="summary-item">
-            <div class="summary-value">{{ item.value }}</div>
-            <div class="summary-label">{{ item.label }}</div>
-          </div>
-        </el-col>
-      </el-row>
-    </el-card>
+      <div class="oa-module-actions">
+        <el-button v-if="activeTab === 'schedule'" type="primary" icon="el-icon-plus" @click="openScheduleDialog()" v-hasPermi="['oa:collab:schedule:list']">新增日程</el-button>
+        <el-button v-if="activeTab === 'meeting'" type="primary" icon="el-icon-plus" @click="openMeetingDialog" v-hasPermi="['oa:collab:meeting:list']">新增会议</el-button>
+        <el-button v-if="activeTab === 'task'" type="primary" icon="el-icon-plus" @click="openTaskDialog" v-hasPermi="['oa:collab:task:list']">新增任务</el-button>
+      </div>
+    </section>
 
-    <el-card shadow="never" class="query-card">
-      <div slot="header" class="clearfix">
-        <span>协同分区</span>
+    <div class="oa-summary-grid three" v-loading="scheduleLoading">
+      <div v-for="item in summaries" :key="item.label" class="oa-stat-item">
+        <div class="oa-stat-value">{{ item.value }}</div>
+        <div class="oa-stat-label">{{ item.label }}</div>
       </div>
-      <el-tabs v-model="activeTab" @tab-click="handleTabChange">
-        <el-tab-pane v-if="hasScheduleQuery" label="日程提醒" name="schedule" />
+    </div>
+
+    <section class="oa-section-card collab-tabs-card">
+      <el-tabs v-model="activeTab" class="oa-tabs collab-tabs" @tab-click="handleTabChange">
+        <el-tab-pane v-if="hasScheduleQuery" label="我的日程" name="schedule" />
         <el-tab-pane v-if="hasMeetingQuery" label="会议管理" name="meeting" />
         <el-tab-pane v-if="hasTaskQuery" label="任务督办" name="task" />
       </el-tabs>
-    </el-card>
+    </section>
 
-    <el-card v-show="activeTab === 'schedule'" shadow="never" class="query-card">
-      <div slot="header" class="clearfix">
-        <span>日程提醒</span>
+    <section v-show="activeTab === 'schedule'" class="oa-section-card schedule-calendar-card">
+      <div class="oa-section-head">
+        <div>
+          <h2 class="oa-section-title">我的日程</h2>
+          <div class="oa-section-note">{{ selectedDayText }} · {{ selectedDaySchedules.length }} 项</div>
+        </div>
       </div>
       <el-form :inline="true" :model="scheduleQuery" size="small">
         <el-form-item label="日程标题">
@@ -48,121 +49,190 @@
         <el-form-item>
           <el-button type="primary" size="mini" icon="el-icon-search" @click="getScheduleList">查询</el-button>
           <el-button size="mini" icon="el-icon-refresh" @click="resetScheduleQuery">重置</el-button>
-          <el-button type="success" size="mini" icon="el-icon-plus" @click="openScheduleDialog" v-hasPermi="['oa:collab:schedule:list']">新增日程</el-button>
+          <el-button type="success" size="mini" icon="el-icon-plus" @click="openScheduleDialog()" v-hasPermi="['oa:collab:schedule:list']">新增日程</el-button>
         </el-form-item>
       </el-form>
 
-      <el-table v-loading="scheduleLoading" :data="scheduleList">
-        <el-table-column label="日程标题" prop="scheduleTitle" min-width="180" show-overflow-tooltip />
-        <el-table-column label="开始时间" prop="startTime" width="170" />
-        <el-table-column label="结束时间" prop="endTime" width="170" />
-        <el-table-column label="提醒时间" prop="remindTime" width="170" />
-        <el-table-column label="状态" prop="scheduleStatusLabel" width="100">
-          <template slot-scope="scope">
-            <el-tag :type="scheduleTagType(scope.row.scheduleStatus)">{{ scope.row.scheduleStatusLabel }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="170" align="center">
-          <template slot-scope="scope">
-            <el-button type="text" size="mini" @click="showScheduleDetail(scope.row)">详情</el-button>
-            <el-button v-if="scope.row.scheduleStatus === 'pending'" type="text" size="mini" @click="handleFinishSchedule(scope.row)" v-hasPermi="['oa:collab:schedule:list']">完成</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <el-row v-show="activeTab !== 'schedule'" :gutter="20">
-      <el-col v-show="activeTab === 'meeting'" :xs="24" :lg="12">
-        <el-card shadow="never" class="query-card">
-          <div slot="header" class="clearfix">
-            <span>会议管理</span>
+      <el-row :gutter="20" class="calendar-layout" v-loading="scheduleLoading">
+        <el-col :xs="24" :lg="16">
+          <el-calendar v-model="calendarValue" class="schedule-calendar">
+            <template slot="dateCell" slot-scope="{ data }">
+              <div
+                class="calendar-cell"
+                :class="{ 'is-selected': isCurrentCalendarDay(data.day), 'is-other-month': data.type !== 'current-month' }"
+                @click="selectCalendarDay(data.day)"
+              >
+                <div class="calendar-day-head">
+                  <span class="calendar-day-number">{{ dayNumber(data.day) }}</span>
+                  <span v-if="schedulesByDate[data.day] && schedulesByDate[data.day].length" class="calendar-count">
+                    {{ schedulesByDate[data.day].length }}项
+                  </span>
+                </div>
+                <div class="calendar-events">
+                  <div
+                    v-for="item in previewSchedules(data.day)"
+                    :key="item.scheduleId"
+                    class="calendar-event"
+                    :class="calendarEventClass(item.scheduleStatus)"
+                    @click.stop="showScheduleDetail(item)"
+                  >
+                    <span class="event-time">{{ shortTime(item.startTime) }}</span>
+                    <span class="event-title">{{ item.scheduleTitle }}</span>
+                  </div>
+                  <div v-if="moreScheduleCount(data.day)" class="calendar-more">+{{ moreScheduleCount(data.day) }} 更多</div>
+                </div>
+              </div>
+            </template>
+          </el-calendar>
+        </el-col>
+        <el-col :xs="24" :lg="8">
+          <div class="schedule-day-panel">
+            <div class="day-panel-header">
+              <div>
+                <div class="day-panel-label">选中日期</div>
+                <div class="day-panel-title">{{ selectedDayText }}</div>
+              </div>
+              <el-button type="primary" size="mini" icon="el-icon-plus" @click="openScheduleDialog(selectedDay)" v-hasPermi="['oa:collab:schedule:list']">新增</el-button>
+            </div>
+            <div v-if="selectedDaySchedules.length" class="day-schedule-list">
+              <div v-for="item in selectedDaySchedules" :key="item.scheduleId" class="day-schedule-item">
+                <div class="schedule-item-dot" :class="calendarEventClass(item.scheduleStatus)" />
+                <div class="schedule-item-main">
+                  <div class="schedule-item-title">{{ item.scheduleTitle }}</div>
+                  <div class="schedule-item-time">{{ formatTimeRange(item) }}</div>
+                  <div class="schedule-item-meta">
+                    <el-tag size="mini" :type="scheduleTagType(item.scheduleStatus)">{{ item.scheduleStatusLabel || statusLabel(item.scheduleStatus) }}</el-tag>
+                    <span v-if="item.scheduleType">{{ item.scheduleType }}</span>
+                  </div>
+                  <div class="schedule-item-actions">
+                    <el-button type="text" size="mini" @click="showScheduleDetail(item)">详情</el-button>
+                    <el-button v-if="item.scheduleStatus === 'pending'" type="text" size="mini" @click="handleFinishSchedule(item)" v-hasPermi="['oa:collab:schedule:list']">完成</el-button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <el-empty v-else description="当天暂无日程" :image-size="86" />
           </div>
-          <el-form :inline="true" :model="meetingQuery" size="small">
-            <el-form-item label="会议标题">
-              <el-input v-model="meetingQuery.meetingTitle" placeholder="请输入会议标题" clearable @keyup.enter.native="getMeetingList" />
-            </el-form-item>
-            <el-form-item label="状态">
-              <el-select v-model="meetingQuery.meetingStatus" placeholder="全部状态" clearable>
-                <el-option label="草稿" value="draft" />
-                <el-option label="已安排" value="scheduled" />
-                <el-option label="已结束" value="finished" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" size="mini" icon="el-icon-search" @click="getMeetingList">查询</el-button>
-              <el-button size="mini" icon="el-icon-refresh" @click="resetMeetingQuery">重置</el-button>
-              <el-button type="success" size="mini" icon="el-icon-plus" @click="openMeetingDialog" v-hasPermi="['oa:collab:meeting:list']">新增会议</el-button>
-            </el-form-item>
-          </el-form>
+        </el-col>
+      </el-row>
+    </section>
 
-          <el-table v-loading="meetingLoading" :data="meetingList">
-            <el-table-column label="会议标题" prop="meetingTitle" min-width="180" show-overflow-tooltip />
-            <el-table-column label="会议室" prop="roomName" min-width="120" />
-            <el-table-column label="组织人" prop="organizerName" width="110" />
-            <el-table-column label="会议时间" min-width="180">
-              <template slot-scope="scope">
-                {{ scope.row.startTime }}<span v-if="scope.row.endTime"> 至 {{ scope.row.endTime }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="状态" prop="meetingStatusLabel" width="100">
-              <template slot-scope="scope">
-                <el-tag :type="meetingTagType(scope.row.meetingStatus)">{{ scope.row.meetingStatusLabel }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="140" align="center">
-              <template slot-scope="scope">
-                <el-button type="text" size="mini" @click="showMeetingDetail(scope.row)">详情</el-button>
-                <el-button v-if="scope.row.meetingStatus === 'scheduled'" type="text" size="mini" @click="handleFinishMeeting(scope.row)" v-hasPermi="['oa:collab:meeting:list']">完成</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
+    <section v-show="activeTab === 'meeting'" class="oa-section-card">
+      <div class="oa-section-head">
+        <div>
+          <h2 class="oa-section-title">会议管理</h2>
+          <div class="oa-section-note">会议预约 · {{ meetingList.length }} 条</div>
+        </div>
+      </div>
+      <el-form :inline="true" :model="meetingQuery" size="small">
+        <el-form-item label="会议标题">
+          <el-input v-model="meetingQuery.meetingTitle" placeholder="请输入会议标题" clearable @keyup.enter.native="getMeetingList" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="meetingQuery.meetingStatus" placeholder="全部状态" clearable>
+            <el-option label="草稿" value="draft" />
+            <el-option label="已安排" value="scheduled" />
+            <el-option label="已结束" value="finished" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="mini" icon="el-icon-search" @click="getMeetingList">查询</el-button>
+          <el-button size="mini" icon="el-icon-refresh" @click="resetMeetingQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
 
-      <el-col v-show="activeTab === 'task'" :xs="24" :lg="activeTab === 'task' ? 24 : 12">
-        <el-card shadow="never" class="query-card">
-          <div slot="header" class="clearfix">
-            <span>任务督办</span>
+      <div v-loading="meetingLoading">
+        <div v-if="meetingList.length" class="oa-record-grid">
+          <article v-for="item in meetingList" :key="item.meetingId" class="oa-record-card meeting-card">
+            <div class="oa-record-head">
+              <div>
+                <div class="oa-record-title">{{ item.meetingTitle || '-' }}</div>
+                <div class="oa-record-code">{{ item.roomName || '-' }}</div>
+              </div>
+              <el-tag size="mini" :type="meetingTagType(item.meetingStatus)">{{ item.meetingStatusLabel || '-' }}</el-tag>
+            </div>
+            <div class="oa-record-body">
+              <div class="oa-meta-row">
+                <i class="el-icon-user" />
+                <span class="oa-meta-text">组织人：{{ item.organizerName || '-' }}</span>
+              </div>
+              <div class="oa-meta-row">
+                <i class="el-icon-time" />
+                <span class="oa-meta-text">{{ item.startTime || '-' }} 至 {{ item.endTime || '-' }}</span>
+              </div>
+            </div>
+            <div class="oa-action-row">
+              <el-button type="text" size="mini" @click="showMeetingDetail(item)">详情</el-button>
+              <el-button v-if="item.meetingStatus === 'scheduled'" type="text" size="mini" @click="handleFinishMeeting(item)" v-hasPermi="['oa:collab:meeting:list']">完成</el-button>
+            </div>
+          </article>
+        </div>
+        <div v-else class="oa-empty-wrap">
+          <el-empty description="暂无会议数据" :image-size="90" />
+        </div>
+      </div>
+    </section>
+
+    <section v-show="activeTab === 'task'" class="oa-section-card">
+      <div class="oa-section-head">
+        <div>
+          <h2 class="oa-section-title">任务督办</h2>
+          <div class="oa-section-note">任务看板 · {{ taskList.length }} 条</div>
+        </div>
+      </div>
+      <el-form :inline="true" :model="taskQuery" size="small">
+        <el-form-item label="任务标题">
+          <el-input v-model="taskQuery.taskTitle" placeholder="请输入任务标题" clearable @keyup.enter.native="getTaskList" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="taskQuery.taskStatus" placeholder="全部状态" clearable>
+            <el-option label="待处理" value="pending" />
+            <el-option label="进行中" value="processing" />
+            <el-option label="已完成" value="completed" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" size="mini" icon="el-icon-search" @click="getTaskList">查询</el-button>
+          <el-button size="mini" icon="el-icon-refresh" @click="resetTaskQuery">重置</el-button>
+        </el-form-item>
+      </el-form>
+
+      <div v-loading="taskLoading" class="oa-kanban">
+        <div v-for="column in taskColumns" :key="column.status" class="oa-kanban-column">
+          <div class="oa-kanban-title">
+            <span>{{ column.label }}</span>
+            <el-tag size="mini" :type="column.type">{{ column.list.length }}</el-tag>
           </div>
-          <el-form :inline="true" :model="taskQuery" size="small">
-            <el-form-item label="任务标题">
-              <el-input v-model="taskQuery.taskTitle" placeholder="请输入任务标题" clearable @keyup.enter.native="getTaskList" />
-            </el-form-item>
-            <el-form-item label="状态">
-              <el-select v-model="taskQuery.taskStatus" placeholder="全部状态" clearable>
-                <el-option label="待处理" value="pending" />
-                <el-option label="进行中" value="processing" />
-                <el-option label="已完成" value="completed" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" size="mini" icon="el-icon-search" @click="getTaskList">查询</el-button>
-              <el-button size="mini" icon="el-icon-refresh" @click="resetTaskQuery">重置</el-button>
-              <el-button type="success" size="mini" icon="el-icon-plus" @click="openTaskDialog" v-hasPermi="['oa:collab:task:list']">新增任务</el-button>
-            </el-form-item>
-          </el-form>
-
-          <el-table v-loading="taskLoading" :data="taskList">
-            <el-table-column label="任务标题" prop="taskTitle" min-width="180" show-overflow-tooltip />
-            <el-table-column label="负责人" prop="assigneeName" width="100" />
-            <el-table-column label="优先级" prop="priorityLevel" width="90" />
-            <el-table-column label="截止时间" prop="dueTime" width="170" />
-            <el-table-column label="状态" prop="taskStatusLabel" width="90">
-              <template slot-scope="scope">
-                <el-tag :type="taskTagType(scope.row.taskStatus)">{{ scope.row.taskStatusLabel }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="170" align="center">
-              <template slot-scope="scope">
-                <el-button type="text" size="mini" @click="showTaskDetail(scope.row)">详情</el-button>
-                <el-button v-if="scope.row.taskStatus !== 'completed'" type="text" size="mini" @click="handleCompleteTask(scope.row)" v-hasPermi="['oa:collab:task:list']">完成</el-button>
-                <el-button type="text" size="mini" @click="openRecordDialog(scope.row)" v-hasPermi="['oa:collab:task:list']">跟进</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-card>
-      </el-col>
-    </el-row>
+          <div v-if="column.list.length" class="oa-list-stack">
+            <article v-for="item in column.list" :key="item.taskId" class="oa-record-card task-card">
+              <div class="oa-record-head">
+                <div>
+                  <div class="oa-record-title">{{ item.taskTitle || '-' }}</div>
+                  <div class="oa-record-code">{{ item.taskType || '任务' }}</div>
+                </div>
+                <el-tag size="mini" :type="taskTagType(item.taskStatus)">{{ item.taskStatusLabel || column.label }}</el-tag>
+              </div>
+              <div class="oa-record-body">
+                <div class="oa-meta-row">
+                  <i class="el-icon-user" />
+                  <span class="oa-meta-text">{{ item.assigneeName || '-' }} ｜ {{ item.priorityLevel || '中' }}</span>
+                </div>
+                <div class="oa-meta-row">
+                  <i class="el-icon-time" />
+                  <span class="oa-meta-text">截止 {{ item.dueTime || '-' }}</span>
+                </div>
+              </div>
+              <div class="oa-action-row">
+                <el-button type="text" size="mini" @click="showTaskDetail(item)">详情</el-button>
+                <el-button v-if="item.taskStatus !== 'completed'" type="text" size="mini" @click="handleCompleteTask(item)" v-hasPermi="['oa:collab:task:list']">完成</el-button>
+                <el-button type="text" size="mini" @click="openRecordDialog(item)" v-hasPermi="['oa:collab:task:list']">跟进</el-button>
+              </div>
+            </article>
+          </div>
+          <el-empty v-else description="暂无任务" :image-size="70" />
+        </div>
+      </div>
+    </section>
 
     <el-dialog title="新增日程" :visible.sync="scheduleDialogOpen" width="640px" append-to-body>
       <el-form ref="scheduleForm" :model="scheduleForm" :rules="scheduleRules" label-width="90px">
@@ -340,6 +410,8 @@ export default {
       meetingLoading: false,
       taskLoading: false,
       activeTab: 'schedule',
+      calendarValue: new Date(),
+      selectedDay: this.formatDate(new Date()),
       summaries: [
         { label: '我的日程', value: 0 },
         { label: '待处理', value: 0 },
@@ -425,6 +497,47 @@ export default {
       }
     }
   },
+  computed: {
+    schedulesByDate() {
+      return this.scheduleList.reduce((dateMap, item) => {
+        const date = this.dateKey(item.startTime || item.remindTime || item.endTime)
+        if (!date) {
+          return dateMap
+        }
+        if (!dateMap[date]) {
+          dateMap[date] = []
+        }
+        dateMap[date].push(item)
+        dateMap[date].sort((prev, next) => String(prev.startTime || '').localeCompare(String(next.startTime || '')))
+        return dateMap
+      }, {})
+    },
+    selectedDaySchedules() {
+      return this.schedulesByDate[this.selectedDay] || []
+    },
+    selectedDayText() {
+      const date = this.parseDate(this.selectedDay)
+      if (!date) {
+        return this.selectedDay
+      }
+      return new Intl.DateTimeFormat('zh-CN', {
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      }).format(date)
+    },
+    taskColumns() {
+      const columns = [
+        { status: 'pending', label: '待处理', type: 'info' },
+        { status: 'processing', label: '进行中', type: 'warning' },
+        { status: 'completed', label: '已完成', type: 'success' }
+      ]
+      return columns.map(column => ({
+        ...column,
+        list: this.taskList.filter(item => (item.taskStatus || 'pending') === column.status)
+      }))
+    }
+  },
   created() {
     this.initPermissions()
     this.activeTab = this.normalizeTab(this.$route.query.tab)
@@ -433,6 +546,12 @@ export default {
     this.loadActiveTabData()
   },
   watch: {
+    calendarValue(value) {
+      const day = this.formatDate(value)
+      if (day && day !== this.selectedDay) {
+        this.selectedDay = day
+      }
+    },
     '$route.query.tab'(value) {
       const tab = this.normalizeTab(value)
       const changed = tab !== this.activeTab
@@ -447,6 +566,86 @@ export default {
     }
   },
   methods: {
+    formatDate(date) {
+      if (!date) {
+        return ''
+      }
+      const parsedDate = date instanceof Date ? date : new Date(String(date).replace(/-/g, '/'))
+      if (isNaN(parsedDate.getTime())) {
+        return ''
+      }
+      const year = parsedDate.getFullYear()
+      const month = String(parsedDate.getMonth() + 1).padStart(2, '0')
+      const day = String(parsedDate.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    },
+    parseDate(day) {
+      if (!day) {
+        return null
+      }
+      const parsedDate = new Date(String(day).replace(/-/g, '/'))
+      return isNaN(parsedDate.getTime()) ? null : parsedDate
+    },
+    dateKey(value) {
+      if (!value) {
+        return ''
+      }
+      if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+        return value.slice(0, 10)
+      }
+      return this.formatDate(value)
+    },
+    dayNumber(day) {
+      return day ? Number(day.slice(-2)) : ''
+    },
+    isCurrentCalendarDay(day) {
+      return day === this.selectedDay
+    },
+    selectCalendarDay(day) {
+      this.selectedDay = day
+      const date = this.parseDate(day)
+      if (date) {
+        this.calendarValue = date
+      }
+    },
+    previewSchedules(day) {
+      return (this.schedulesByDate[day] || []).slice(0, 3)
+    },
+    moreScheduleCount(day) {
+      const count = (this.schedulesByDate[day] || []).length
+      return count > 3 ? count - 3 : 0
+    },
+    shortTime(value) {
+      if (!value) {
+        return '--:--'
+      }
+      return String(value).slice(11, 16) || '--:--'
+    },
+    formatTimeRange(item) {
+      const start = item.startTime || '-'
+      const end = item.endTime || '-'
+      return start + ' 至 ' + end
+    },
+    buildDateTime(day, time) {
+      return day ? day + ' ' + time : undefined
+    },
+    calendarEventClass(status) {
+      if (status === 'completed') {
+        return 'status-completed'
+      }
+      if (status === 'cancelled') {
+        return 'status-cancelled'
+      }
+      return 'status-pending'
+    },
+    statusLabel(status) {
+      const labelMap = {
+        pending: '待处理',
+        completed: '已完成',
+        cancelled: '已取消'
+      }
+      return labelMap[status] || status || '-'
+    },
     initPermissions() {
       this.hasScheduleQuery = checkPermi(['oa:collab:schedule:list', 'oa:collab:schedule:query'])
       this.hasMeetingQuery = checkPermi(['oa:collab:meeting:list', 'oa:collab:meeting:query'])
@@ -570,13 +769,13 @@ export default {
       this.taskQuery.taskStatus = undefined
       this.getTaskList()
     },
-    openScheduleDialog() {
+    openScheduleDialog(day) {
       this.scheduleForm = {
         scheduleTitle: undefined,
         scheduleType: undefined,
-        startTime: undefined,
-        endTime: undefined,
-        remindTime: undefined,
+        startTime: this.buildDateTime(day, '09:00:00'),
+        endTime: this.buildDateTime(day, '10:00:00'),
+        remindTime: this.buildDateTime(day, '08:30:00'),
         scheduleStatus: 'pending',
         remark: undefined
       }
@@ -752,31 +951,252 @@ export default {
 
 <style scoped lang="scss">
 .oa-page {
-  .summary-card,
-  .query-card {
-    margin-bottom: 20px;
+  .collab-tabs-card {
+    padding-top: 8px;
+    padding-bottom: 0;
   }
 
-  .summary-row {
-    margin-top: 16px;
+  .collab-tabs {
+    margin-bottom: 0;
   }
 
-  .summary-item {
-    padding: 16px;
-    border-radius: 10px;
-    background: #f5f7fa;
-    text-align: center;
+  .schedule-calendar-card,
+  .oa-section-card {
+    ::v-deep .el-form-item {
+      margin-bottom: 10px;
+    }
   }
 
-  .summary-value {
-    font-size: 24px;
-    font-weight: 600;
-    color: #409eff;
-  }
-
-  .summary-label {
+  .calendar-layout {
     margin-top: 8px;
-    color: #606266;
+  }
+
+  .schedule-calendar {
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+
+    ::v-deep .el-calendar__header {
+      padding: 18px 20px;
+      border-bottom: 1px solid #eef2f7;
+      background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%);
+    }
+
+    ::v-deep .el-calendar__title {
+      color: #0f172a;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    ::v-deep .el-calendar__button-group .el-button {
+      border-radius: 999px;
+    }
+
+    ::v-deep .el-calendar-table thead th {
+      padding: 12px 0;
+      color: #64748b;
+      font-weight: 700;
+      background: #ffffff;
+    }
+
+    ::v-deep .el-calendar-table td {
+      border-color: #eef2f7;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #f8fafc;
+      }
+    }
+
+    ::v-deep .el-calendar-day {
+      height: 132px;
+      padding: 0;
+    }
+  }
+
+  .calendar-cell {
+    height: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+
+    &.is-selected {
+      background: linear-gradient(180deg, rgba(37, 99, 235, 0.08), rgba(14, 165, 233, 0.05));
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.24);
+    }
+
+    &.is-other-month {
+      opacity: 0.48;
+    }
+  }
+
+  .calendar-day-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .calendar-day-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    color: #0f172a;
+    font-weight: 800;
+  }
+
+  .calendar-count {
+    padding: 2px 7px;
+    border-radius: 999px;
+    color: #2563eb;
+    font-size: 12px;
+    background: rgba(37, 99, 235, 0.1);
+  }
+
+  .calendar-events {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .calendar-event {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 5px 7px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.2;
+    transition: transform 0.2s ease;
+
+    &:hover {
+      transform: translateX(2px);
+    }
+  }
+
+  .event-time {
+    flex: 0 0 auto;
+    font-weight: 800;
+  }
+
+  .event-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .calendar-more {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .status-pending {
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.12);
+  }
+
+  .status-completed {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.12);
+  }
+
+  .status-cancelled {
+    color: #64748b;
+    background: rgba(100, 116, 139, 0.12);
+  }
+
+  .schedule-day-panel {
+    min-height: 100%;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+  }
+
+  .day-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .day-panel-label {
+    margin-bottom: 6px;
+    color: #3b82f6;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .day-panel-title {
+    color: #0f172a;
+    font-size: 20px;
+    font-weight: 800;
+  }
+
+  .day-schedule-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .day-schedule-item {
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #eef2f7;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.86);
+  }
+
+  .schedule-item-dot {
+    flex: 0 0 10px;
+    width: 10px;
+    height: 10px;
+    margin-top: 5px;
+    border-radius: 999px;
+  }
+
+  .schedule-item-main {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .schedule-item-title {
+    overflow: hidden;
+    color: #0f172a;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .schedule-item-time {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .schedule-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+
+  .schedule-item-actions {
+    margin-top: 6px;
   }
 
   .panel-title {
@@ -807,6 +1227,45 @@ export default {
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid #ebeef5;
+  }
+}
+
+@media screen and (max-width: 1200px) {
+  .oa-page {
+    .schedule-day-panel {
+      margin-top: 18px;
+    }
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .oa-page {
+    .schedule-calendar {
+      ::v-deep .el-calendar__header {
+        display: block;
+      }
+
+      ::v-deep .el-calendar__button-group {
+        margin-top: 12px;
+      }
+
+      ::v-deep .el-calendar-day {
+        height: 96px;
+      }
+    }
+
+    .calendar-cell {
+      padding: 8px;
+    }
+
+    .calendar-event {
+      padding: 4px 6px;
+    }
+
+    .event-time,
+    .calendar-count {
+      display: none;
+    }
   }
 }
 </style>
