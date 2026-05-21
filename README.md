@@ -1,150 +1,576 @@
-<p align="center">
-	<img alt="logo" src="https://oscimg.oschina.net/oscnet/up-b99b286755aef70355a7084753f89cdb7c9.png">
-</p>
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi v3.6.7</h1>
-<h4 align="center">基于 Vue/Element UI 和 Spring Boot/Spring Cloud & Alibaba 前后端分离的分布式微服务架构</h4>
-<p align="center">
-	<a href="https://gitee.com/y_project/RuoYi-Cloud/stargazers"><img src="https://gitee.com/y_project/RuoYi-Cloud/badge/star.svg?theme=dark"></a>
-	<a href="https://gitee.com/y_project/RuoYi-Cloud"><img src="https://img.shields.io/badge/RuoYi-v3.6.7-brightgreen.svg"></a>
-	<a href="https://gitee.com/y_project/RuoYi-Cloud/blob/master/LICENSE"><img src="https://img.shields.io/github/license/mashape/apistatus.svg"></a>
-</p>
+# 河口医院智能协同办公平台
 
-## 平台简介
+> 基于 RuoYi-Cloud 3.6.7 二次开发的医院行政协同办公系统。项目采用 Spring Cloud 微服务架构与 Vue 2 前后端分离模式，面向医院内部办公、跨科室协同、通知文档、会议任务、通讯录、患者信息查询等场景。
 
-若依是一套全部开源的快速开发平台，毫无保留给个人及企业免费使用。
+## 目录
 
-* 采用前后端分离的模式，微服务版本前端(基于 [RuoYi-Vue](https://gitee.com/y_project/RuoYi-Vue))。
-* 后端采用Spring Boot、Spring Cloud & Alibaba。
-* 注册中心、配置中心选型Nacos，权限认证使用Redis。
-* 流量控制框架选型Sentinel，分布式事务选型Seata。
-* 阿里云优惠券：[点我进入](http://aly.ruoyi.vip)，腾讯云优惠券：[点我进入](http://txy.ruoyi.vip)&nbsp;&nbsp;
+- [项目概览](#项目概览)
+- [核心能力](#核心能力)
+- [功能模块](#功能模块)
+- [技术栈](#技术栈)
+- [系统架构](#系统架构)
+- [模块结构](#模块结构)
+- [端口清单](#端口清单)
+- [环境要求](#环境要求)
+- [快速开始](#快速开始)
+- [Docker 部署](#docker-部署)
+- [数据库脚本](#数据库脚本)
+- [关键配置](#关键配置)
+- [常用命令](#常用命令)
+- [常见问题](#常见问题)
+- [开发说明](#开发说明)
+- [License](#license)
 
-# 版本分支
+## 项目概览
 
-RuoYi-Cloud 后端项目提供 Spring Boot 2.x / 3.x / 4.x 多版本分支的并行维护。
+`hospital-oa-system` 是一个医院 OA 微服务项目，保留了 RuoYi-Cloud 的网关、认证、权限、日志、代码生成、定时任务、监控等基础能力，并扩展了医院协同办公业务。
 
-| 名称              | 说明                                 | 地址                                                      |
-| :---------------- | :----------------------------------- | :-------------------------------------------------------- |
-| master 默认分支   | Spring Boot 4.x (JDK 17+、Nacos 3.x) | https://gitee.com/y_project/RuoYi-Cloud                   |
-| springboot3 分支  | Spring Boot 3.x (JDK 17+、Nacos 3.x) | https://gitee.com/y_project/RuoYi-Cloud/tree/springboot3  |
-| springboot2 分支  | Spring Boot 2.x (JDK 8+、 Nacos 2.x) | https://gitee.com/y_project/RuoYi-Cloud/tree/springboot2  |
+项目主要覆盖以下角色和场景：
 
-RuoYi-Cloud 前端项目提供 Vue 2.x / 3.x / JavaScript TypeScript 版本均可混用搭配
+- 医院行政人员：处理审批、通知、制度文档、会议室预约、任务督办。
+- 科室负责人：查看待办、跟进跨科室任务、维护科室通讯录。
+- 普通员工：提交申请、查看通知、确认文档阅读、管理个人日程。
+- 授权医护人员：按权限查询患者、病例及访问审计记录。
 
-| 项目名称      | **RuoYi-Cloud** | **RuoYi-Cloud-Vue3** | **RuoYi-Cloud-Vue3-TypeScript**   |
-| :---          | :---            | :---                 | :---                              |
-| **前端框架**  | Vue 2           | Vue 3                | Vue 3                             |
-| **脚本语言**  | JavaScript      | JavaScript           | TypeScript                        |
-| **构建工具**  | Vue CLI         | Vite                 | Vite                              |
-| **UI 组件库** | Element UI      | Element Plus         | Element Plus                      |
-| **状态管理**  | Vuex            | Pinia                | Pinia                             |
-| **路由管理**  | Vue Router 3    | Vue Router 4         | Vue Router 4                      |
-| **核心特点**  | 1. 技术栈经典稳定<br>2. 社区资料丰富<br>3. 当前维护重心已转移 | 1. 现代前端技术栈<br>2. 开发体验与性能更优<br>3. 官方主推的活跃版本 | 1. 类型加持，减少沟通成本<br>2. 开发时有提示，效率更高<br>3. 多人协作企业级开发项目 |
-| **仓库地址**  | [RuoYi-Cloud](https://gitee.com/y_project/RuoYi-Cloud) | [RuoYi-Cloud-Vue3](https://gitcode.com/yangzongzhuan/RuoYi-Cloud-Vue3) | [RuoYi-Cloud-Vue3-TypeScript](https://gitcode.com/yangzongzhuan/RuoYi-Cloud-Vue3/tree/typescript) |
+## 核心能力
 
-## 系统模块
+- 微服务分层：Gateway 统一入口，Auth 统一认证，System 承载系统管理与 OA 核心业务，File/Job/Gen/Monitor 独立服务化。
+- 权限体系：支持 RBAC 菜单权限、按钮权限、数据权限、登录日志、操作日志和接口鉴权。
+- 医院 OA 业务：覆盖审批中心、通知文档、会议管理、任务督办、日程提醒、院内通讯录、患者服务。
+- 文件能力：提供独立文件服务，默认支持本地存储，并保留 MinIO、GridFS 相关兼容能力。
+- 配置中心：通过 Nacos 管理公共配置、网关路由、数据源、文件服务、接口文档等配置。
+- 初始化脚本：`sql/hospital_cloud_init.sql` 提供主业务库的一站式初始化脚本，包含核心系统表、Quartz 表、OA 表和演示数据。
+- 前后端分离：前端基于 Vue 2 + Element UI，开发环境通过 `/dev-api` 代理到网关。
 
-~~~
-com.ruoyi     
-├── ruoyi-ui              // 前端框架 [80]
-├── ruoyi-gateway         // 网关模块 [8080]
-├── ruoyi-auth            // 认证中心 [9200]
-├── ruoyi-api             // 接口模块
-│       └── ruoyi-api-system                          // 系统接口
-├── ruoyi-common          // 通用模块
-│       └── ruoyi-common-core                         // 核心模块
-│       └── ruoyi-common-datascope                    // 权限范围
-│       └── ruoyi-common-datasource                   // 多数据源
-│       └── ruoyi-common-log                          // 日志记录
-│       └── ruoyi-common-redis                        // 缓存服务
-│       └── ruoyi-common-seata                        // 分布式事务
-│       └── ruoyi-common-security                     // 安全模块
-│       └── ruoyi-common-sensitive                    // 数据脱敏
-│       └── ruoyi-common-swagger                      // 系统接口
-├── ruoyi-modules         // 业务模块
-│       └── ruoyi-system                              // 系统模块 [9201]
-│       └── ruoyi-gen                                 // 代码生成 [9202]
-│       └── ruoyi-job                                 // 定时任务 [9203]
-│       └── ruoyi-file                                // 文件服务 [9300]
-├── ruoyi-visual          // 图形化管理模块
-│       └── ruoyi-visual-monitor                      // 监控中心 [9100]
-├──pom.xml                // 公共依赖
-~~~
+## 功能模块
 
-## 架构图
+| 模块 | 说明 |
+| --- | --- |
+| 工作台 | 聚合待办事项、近期日程、通知公告、文档和业务概览。 |
+| 审批中心 | 支持我的申请、我的待办、我的已办；当前覆盖请假、报销等轻量审批流。 |
+| 通知文档 | 通知中心、制度文档管理、文档发布、归档、阅读确认、附件上传下载。 |
+| 会议任务 | 会议室查询、会议预约、会议完成、任务督办、任务跟进记录、日程提醒。 |
+| 通讯录 | 院内人员查询、科室查询、联系人分组。 |
+| 患者服务 | 患者查询、病例查询、患者访问审计，支持手机号、身份证等敏感信息脱敏。 |
+| 系统管理 | 用户、角色、菜单、部门、岗位、字典、参数、日志、代码生成、定时任务、服务监控。 |
 
-<img src="https://oscimg.oschina.net/oscnet/up-82e9722ecb846786405a904bafcf19f73f3.png"/>
+## 技术栈
 
-## 内置功能
+### 后端
 
-1.  用户管理：用户是系统操作者，该功能主要完成系统用户配置。
-2.  部门管理：配置系统组织机构（公司、部门、小组），树结构展现支持数据权限。
-3.  岗位管理：配置系统用户所属担任职务。
-4.  菜单管理：配置系统菜单，操作权限，按钮权限标识等。
-5.  角色管理：角色菜单权限分配、设置角色按机构进行数据范围权限划分。
-6.  字典管理：对系统中经常使用的一些较为固定的数据进行维护。
-7.  参数管理：对系统动态配置常用参数。
-8.  通知公告：系统通知公告信息发布维护。
-9.  操作日志：系统正常操作日志记录和查询；系统异常信息日志记录和查询。
-10. 登录日志：系统登录日志记录查询包含登录异常。
-11. 在线用户：当前系统中活跃用户状态监控。
-12. 定时任务：在线（添加、修改、删除)任务调度包含执行结果日志。
-13. 代码生成：前后端代码的生成（java、html、xml、sql）支持CRUD下载 。
-14. 系统接口：根据业务代码自动生成相关的api接口文档。
-15. 服务监控：监视当前系统CPU、内存、磁盘、堆栈等相关信息。
-16. 在线构建器：拖动表单元素生成相应的HTML代码。
-17. 连接池监视：监视当前系统数据库连接池状态，可进行分析SQL找出系统性能瓶颈。
+| 技术 | 版本/说明 |
+| --- | --- |
+| Java | 1.8 |
+| Maven | 3.6+ |
+| Spring Boot | 2.7.18 |
+| Spring Cloud | 2021.0.8 |
+| Spring Cloud Alibaba | 2021.0.5.0 |
+| Nacos | 注册中心、配置中心；Docker 默认镜像 `nacos/nacos-server:v3.0.2` |
+| Sentinel | 网关限流、熔断降级 |
+| OpenFeign | 微服务间调用 |
+| MyBatis | 2.3.2 |
+| Druid | 1.2.28 |
+| Dynamic Datasource | 3.6.1 |
+| PageHelper | 1.4.7 |
+| MySQL | Docker 默认 `mysql:5.7` |
+| Redis | 缓存、验证码、令牌存储 |
+| Quartz | 定时任务 |
+| Spring Boot Admin | 服务监控 |
+| Springdoc OpenAPI | 1.7.0 |
+| MinIO | 可选对象存储，文件服务已引入依赖 |
+| MongoDB/GridFS | 可选，`hospital-system` 默认保留 `MONGODB_URI` 配置用于历史兼容 |
 
-## 在线体验
+### 前端
 
-- admin/admin123  
-- 陆陆续续收到一些打赏，为了更好的体验已用于演示服务器升级。谢谢各位小伙伴。
+| 技术 | 版本/说明 |
+| --- | --- |
+| Vue | 2.6.12 |
+| Vue Router | 3.4.9 |
+| Vuex | 3.6.0 |
+| Element UI | 2.15.14 |
+| Axios | 0.28.1 |
+| ECharts | 5.4.0 |
+| Quill | 2.0.2 |
+| Sass | 1.32.13 |
+| Vue CLI | 4.4.6 |
 
-演示地址：http://ruoyi.vip  
-文档地址：http://doc.ruoyi.vip
+## 系统架构
 
-## 演示图
+```text
+Browser / hospital-ui
+        |
+        | /dev-api 或 /prod-api
+        v
+hospital-gateway :8080
+        |
+        +-- hospital-auth    :9200  登录、认证、令牌
+        +-- hospital-system  :9201  系统管理、OA 核心业务、患者服务
+        +-- hospital-file    :9300  文件上传、下载、存储
+        +-- hospital-gen     :9202  代码生成
+        +-- hospital-job     :9203  定时任务
+        +-- hospital-monitor :9100  服务监控
 
-<table>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/cd1f90be5f2684f4560c9519c0f2a232ee8.jpg"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/1cbcf0e6f257c7d3a063c0e3f2ff989e4b3.jpg"/></td>
-    </tr>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-8074972883b5ba0622e13246738ebba237a.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-9f88719cdfca9af2e58b352a20e23d43b12.png"/></td>
-    </tr>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-39bf2584ec3a529b0d5a3b70d15c9b37646.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-4148b24f58660a9dc347761e4cf6162f28f.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-b2d62ceb95d2dd9b3fbe157bb70d26001e9.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-d67451d308b7a79ad6819723396f7c3d77a.png"/></td>
-    </tr>	 
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/5e8c387724954459291aafd5eb52b456f53.jpg"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/644e78da53c2e92a95dfda4f76e6d117c4b.jpg"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-8370a0d02977eebf6dbf854c8450293c937.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-49003ed83f60f633e7153609a53a2b644f7.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-d4fe726319ece268d4746602c39cffc0621.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-c195234bbcd30be6927f037a6755e6ab69c.png"/></td>
-    </tr>
-	<tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-ece3fd37a3d4bb75a3926e905a3c5629055.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-92ffb7f3835855cff100fa0f754a6be0d99.png"/></td>
-    </tr>
-    <tr>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-ff9e3066561574aca73005c5730c6a41f15.png"/></td>
-        <td><img src="https://oscimg.oschina.net/oscnet/up-5e4daac0bb59612c5038448acbcef235e3a.png"/></td>
-    </tr>
-</table>
+基础设施：
+Nacos :8848 / MySQL :3306 / Redis :6379 / 可选 MongoDB / 可选 MinIO
+```
 
+网关路由来自 Nacos 配置 `hospital-gateway-dev.yml`：
 
-## 若依微服务交流群
+| 入口路径 | 目标服务 |
+| --- | --- |
+| `/auth/**` | `hospital-auth` |
+| `/system/**` | `hospital-system` |
+| `/file/**` | `hospital-file` |
+| `/code/**` | `hospital-gen` |
+| `/schedule/**` | `hospital-job` |
 
-QQ群： [![加入QQ群](https://img.shields.io/badge/已满-42799195-blue.svg)](https://jq.qq.com/?_wv=1027&k=yqInfq0S) [![加入QQ群](https://img.shields.io/badge/已满-170157040-blue.svg)](https://jq.qq.com/?_wv=1027&k=Oy1mb3p8) [![加入QQ群](https://img.shields.io/badge/已满-130643120-blue.svg)](https://jq.qq.com/?_wv=1027&k=rvxkJtXK) [![加入QQ群](https://img.shields.io/badge/已满-225920371-blue.svg)](https://jq.qq.com/?_wv=1027&k=0Ck3PvTe) [![加入QQ群](https://img.shields.io/badge/已满-201705537-blue.svg)](https://jq.qq.com/?_wv=1027&k=FnHHP4TT) [![加入QQ群](https://img.shields.io/badge/已满-236543183-blue.svg)](https://jq.qq.com/?_wv=1027&k=qdT1Ojpz) [![加入QQ群](https://img.shields.io/badge/已满-213618602-blue.svg)](https://jq.qq.com/?_wv=1027&k=nw3OiyXs) [![加入QQ群](https://img.shields.io/badge/已满-148794840-blue.svg)](https://jq.qq.com/?_wv=1027&k=kiU5WDls) [![加入QQ群](https://img.shields.io/badge/已满-118752664-blue.svg)](https://jq.qq.com/?_wv=1027&k=MtBy6YfT) [![加入QQ群](https://img.shields.io/badge/已满-101038945-blue.svg)](https://jq.qq.com/?_wv=1027&k=FqImHgH2) [![加入QQ群](https://img.shields.io/badge/已满-128355254-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=G4jZ4EtdT50PhnMBudTnEwgonxkXOscJ&authKey=FkGHYfoTKlGE6wHdKdjH9bVoOgQjtLP9WM%2Fj7pqGY1msoqw9uxDiBo39E2mLgzYg&noverify=0&group_code=128355254) [![加入QQ群](https://img.shields.io/badge/已满-179219821-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=irnwcXhbLOQEv1g-TwGifjNTA_f4wZiA&authKey=4bpzEwhcUY%2FvsPDHvzYn6xfoS%2FtOArvZ%2BGXzfr7O0%2FEqLfkKA%2BuCDXlzHIFg8t93&noverify=0&group_code=179219821) [![加入QQ群](https://img.shields.io/badge/已满-158753145-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=lx1uEdEDuxeM7rUvF3qmlFdqKqdJ5Z-R&authKey=rgyPW9yhhh4IIURKVFa6NgP3qiqH04WAzrJ0trsgkr3pjzm6sKIOGyA58oOjoj%2FJ&noverify=0&group_code=158753145) [![加入QQ群](https://img.shields.io/badge/112869560-blue.svg)](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=Kuaw0Xdlw2Nlgn6s8h9elzuquHGxGObD&authKey=cSrQcWQ%2BzQZAFFrwxaR%2BbzcumX4WRduZnd1O6JO1dlclQMiu%2BKwxAy8t2JfNp67V&noverify=0&group_code=112869560) 点击按钮入群。
+## 模块结构
+
+```text
+hospital-oa-system
+├── hospital-gateway                 # API 网关 [8080]
+├── hospital-auth                    # 认证中心 [9200]
+├── hospital-api
+│   └── hospital-api-system          # Feign API 定义
+├── hospital-common                  # 公共能力模块
+│   ├── hospital-common-core         # 核心工具、基础实体、通用返回
+│   ├── hospital-common-security     # 鉴权、安全上下文、Feign 拦截
+│   ├── hospital-common-redis        # Redis 封装
+│   ├── hospital-common-datascope    # 数据权限
+│   ├── hospital-common-datasource   # 多数据源
+│   ├── hospital-common-log          # 操作日志
+│   ├── hospital-common-seata        # 分布式事务预留
+│   ├── hospital-common-sensitive    # 敏感数据处理
+│   └── hospital-common-swagger      # Springdoc/OpenAPI 配置
+├── hospital-modules
+│   ├── hospital-system              # 系统管理 + OA 核心业务 [9201]
+│   ├── hospital-file                # 文件服务 [9300]
+│   ├── hospital-gen                 # 代码生成 [9202]
+│   ├── hospital-job                 # 定时任务 [9203]
+│   └── hospital-oa-collab           # 协同扩展实验模块，当前未加入父工程构建
+├── hospital-visual
+│   └── hospital-monitor             # Spring Boot Admin 监控中心 [9100]
+├── hospital-ui                      # Vue 2 + Element UI 前端
+├── sql                              # 数据库初始化、演进和兼容脚本
+├── docker                           # Docker Compose 与镜像构建配置
+└── bin                              # Windows 打包、启动脚本
+```
+
+当前真实 OA 业务代码主要位于：
+
+```text
+hospital-modules/hospital-system/src/main/java/com/hospitaloa/oa
+hospital-modules/hospital-system/src/main/java/com/hospitaloa/system/controller/OaDocumentController.java
+hospital-ui/src/views/oa
+hospital-ui/src/api/oa
+```
+
+## 端口清单
+
+| 服务 | 默认端口 | 说明 |
+| --- | --- | --- |
+| hospital-ui | 80 | 前端开发服务或 Nginx 访问端口 |
+| hospital-gateway | 8080 | API 网关 |
+| hospital-auth | 9200 | 认证中心 |
+| hospital-system | 9201 | 系统管理与 OA 核心服务 |
+| hospital-gen | 9202 | 代码生成服务 |
+| hospital-job | 9203 | 定时任务服务 |
+| hospital-file | 9300 | 文件服务 |
+| hospital-monitor | 9100 | 服务监控中心 |
+| Nacos | 8848 / 9848 / 9849 | 注册中心、配置中心 |
+| Redis | 6379 | 缓存服务 |
+| MySQL | 3306 | 数据库服务 |
+| MinIO | 9000 | 可选对象存储 |
+
+## 环境要求
+
+| 环境 | 要求 |
+| --- | --- |
+| JDK | 1.8+ |
+| Maven | 3.6+ |
+| Node.js | 8.9+；建议使用 Node 14 或 16 以匹配 Vue CLI 4 生态 |
+| npm | 3.0+ |
+| MySQL | 5.7+ |
+| Redis | 5+ |
+| Nacos | 2.x/3.x |
+| Docker | 可选，用于快速启动基础设施或容器化部署 |
+| MongoDB | 可选，启用 GridFS 兼容能力时需要 |
+| MinIO | 可选，启用对象存储模式时需要 |
+
+## 快速开始
+
+以下流程适合本地开发。默认以 Windows + PowerShell 为例，Linux/macOS 可按等价命令执行。
+
+### 1. 启动基础设施
+
+仓库内的 Docker Compose 已提供 MySQL、Redis、Nacos 等基础服务：
+
+```bash
+cd docker
+docker compose up -d hospital-mysql hospital-redis hospital-nacos
+```
+
+如果你的 Docker Compose 版本较旧，也可以使用：
+
+```bash
+docker-compose up -d hospital-mysql hospital-redis hospital-nacos
+```
+
+说明：
+
+- MySQL 默认账号：`root / 123456`
+- MySQL 默认业务库：`hospital-cloud`
+- Nacos 配置库：`hospital-config`
+- 当前 `docker-compose.yml` 未内置 MongoDB 和 MinIO；如启用相关能力，请单独启动。
+
+### 2. 初始化数据库
+
+推荐导入一站式业务库脚本和 Nacos 配置脚本：
+
+```bash
+mysql -uroot -p123456 < sql/hospital_cloud_init.sql
+mysql -uroot -p123456 < sql/hospital-config_20260311.sql
+```
+
+注意：以上脚本会执行 `DROP DATABASE IF EXISTS`，会重建 `hospital-cloud` 和 `hospital-config`，请不要在生产库或有价值数据的库上直接执行。
+
+如需启用 Seata 预留库，再额外执行：
+
+```bash
+mysql -uroot -p123456 < sql/hospital-seata_20210128.sql
+```
+
+### 3. 启动后端服务
+
+开发阶段可以使用 IDE 分别启动以下 Application 类：
+
+| 启动类 | 服务 |
+| --- | --- |
+| `com.hospitaloa.gateway.HospitalGatewayApplication` | 网关 |
+| `com.hospitaloa.auth.HospitalAuthApplication` | 认证中心 |
+| `com.hospitaloa.system.HospitalSystemApplication` | 系统/OA 核心 |
+| `com.hospitaloa.file.HospitalFileApplication` | 文件服务 |
+| `com.hospitaloa.gen.HospitalGenApplication` | 代码生成 |
+| `com.hospitaloa.job.HospitalJobApplication` | 定时任务 |
+| `com.hospitaloa.modules.monitor.HospitalMonitorApplication` | 监控中心 |
+
+最小可用组合：
+
+```text
+hospital-auth
+hospital-system
+hospital-file
+hospital-gateway
+```
+
+启动顺序建议：
+
+```text
+Nacos / MySQL / Redis
+        ↓
+hospital-auth / hospital-system / hospital-file
+        ↓
+hospital-gateway
+        ↓
+hospital-ui
+```
+
+也可以先打包，再用 `bin` 目录下的 Windows 脚本启动：
+
+```bash
+mvn clean package -DskipTests
+```
+
+```text
+bin/run-auth.bat
+bin/run-modules-system.bat
+bin/run-modules-file.bat
+bin/run-gateway.bat
+```
+
+### 4. 启动前端
+
+```bash
+cd hospital-ui
+npm install
+npm run dev
+```
+
+前端开发服务默认端口为 `80`，开发环境接口前缀为 `/dev-api`，并在 `hospital-ui/vue.config.js` 中代理到 `http://localhost:8080`。
+
+如果 `80` 端口被占用，可以指定端口：
+
+```powershell
+$env:port=8081
+npm run dev
+```
+
+浏览器访问：
+
+```text
+http://localhost
+```
+
+如果改用了 `8081`：
+
+```text
+http://localhost:8081
+```
+
+### 5. 默认账号
+
+| 账号 | 密码 | 说明 |
+| --- | --- | --- |
+| `admin` | `admin123` | 系统管理员 |
+| `staff` | `admin123` | 测试员工账号 |
+
+## Docker 部署
+
+完整容器化部署依赖已构建好的后端 jar 和前端 `dist`。
+
+```bash
+# 1. 后端打包
+mvn clean package -DskipTests
+
+# 2. 前端构建
+cd hospital-ui
+npm install
+npm run build:prod
+
+# 3. 复制产物并启动容器
+cd ../docker
+sh copy.sh
+sh deploy.sh base
+sh deploy.sh modules
+```
+
+`deploy.sh` 参数说明：
+
+| 命令 | 说明 |
+| --- | --- |
+| `sh deploy.sh port` | 在 Linux 防火墙中放行项目端口 |
+| `sh deploy.sh base` | 启动 MySQL、Redis、Nacos |
+| `sh deploy.sh modules` | 启动 Nginx、Gateway、Auth、System 等核心服务 |
+| `sh deploy.sh stop` | 停止全部容器 |
+| `sh deploy.sh rm` | 删除全部容器 |
+
+说明：
+
+- Windows 环境建议通过 WSL 或 Git Bash 执行 `sh` 脚本。
+- `copy.sh` 会复制 SQL、前端构建产物和后端 jar 到 `docker` 目录下对应镜像上下文。
+- 当前 `deploy.sh modules` 只启动核心模块；如需启动 `job`、`gen`、`file`、`monitor`，可按需调整 `docker/docker-compose.yml` 或手动执行 `docker compose up -d <service>`。
+
+## 数据库脚本
+
+| 脚本 | 说明 |
+| --- | --- |
+| `sql/hospital_cloud_init.sql` | 推荐的一站式主业务库初始化脚本，包含 `hospital-cloud`、核心系统表、Quartz 表、OA 表和演示数据。 |
+| `sql/00_core_schema.sql` | 系统核心表结构和基础种子数据。 |
+| `sql/10_quartz_schema.sql` | Quartz 调度表。 |
+| `sql/20_oa_runtime_schema.sql` | 当前启用的 OA 业务表。 |
+| `sql/21_oa_seed_demo.sql` | OA 演示数据。 |
+| `sql/90_oa_future_schema.sql` | 未来预留的 OA 扩展表。 |
+| `sql/hospital-config_20260311.sql` | Nacos 配置中心库 `hospital-config`。 |
+| `sql/hospital-seata_20210128.sql` | Seata 事务库 `hospital-seata`。 |
+| `sql/hospital_20250523.sql` | 旧版兼容脚本，保留用于对照。 |
+| `sql/hospital_oa_phase1.sql` | 旧版/阶段性 OA 脚本，保留用于对照。 |
+| `sql/quartz.sql` | 旧版 Quartz 拆分脚本，保留用于对照。 |
+
+推荐本地初始化顺序：
+
+```sql
+source sql/hospital_cloud_init.sql;
+source sql/hospital-config_20260311.sql;
+-- 如需启用 Seata，再执行：
+source sql/hospital-seata_20210128.sql;
+```
+
+## 关键配置
+
+### Nacos
+
+后端服务会从 Nacos 加载公共配置和服务私有配置：
+
+```text
+application-dev.yml
+hospital-gateway-dev.yml
+hospital-auth-dev.yml
+hospital-system-dev.yml
+hospital-file-dev.yml
+hospital-gen-dev.yml
+hospital-job-dev.yml
+hospital-monitor-dev.yml
+```
+
+服务本地 `bootstrap.yml` 默认读取：
+
+```text
+NACOS_SERVER_ADDR=127.0.0.1:8848
+```
+
+如 Nacos 不在本机，可设置环境变量：
+
+```powershell
+$env:NACOS_SERVER_ADDR="192.168.1.10:8848"
+```
+
+### 数据源
+
+默认数据源配置在 Nacos 的 `hospital-system-dev.yml`、`hospital-gen-dev.yml`、`hospital-job-dev.yml` 中：
+
+```text
+jdbc:mysql://localhost:3306/hospital-cloud
+root / 123456
+```
+
+如果后端服务运行在 Docker 网络内，需要把 `localhost` 调整为对应容器名，例如 `hospital-mysql`。
+
+### Redis
+
+默认 Redis 配置：
+
+```text
+host: localhost
+port: 6379
+```
+
+Docker 网络内同样需要调整为 `hospital-redis`。
+
+### 文件服务
+
+Nacos 中 `hospital-file-dev.yml` 默认配置：
+
+```text
+file.domain = http://127.0.0.1:9300
+file.path   = D:/hospital/uploadPath
+file.prefix = /statics
+```
+
+MinIO 配置已预留：
+
+```text
+minio.url        = http://127.0.0.1:9000
+minio.accessKey  = minioadmin
+minio.secretKey  = minioadmin
+minio.bucketName = test
+```
+
+### MongoDB
+
+`hospital-system` 默认保留 MongoDB URI：
+
+```text
+MONGODB_URI=mongodb://127.0.0.1:27017/hospital_oa
+```
+
+如不使用 GridFS 相关能力，通常不需要单独处理；如使用文档历史附件兼容能力，请启动 MongoDB 并按环境修改该变量。
+
+### 前端接口前缀
+
+| 环境文件 | 接口前缀 |
+| --- | --- |
+| `hospital-ui/.env.development` | `/dev-api` |
+| `hospital-ui/.env.production` | `/prod-api` |
+| `hospital-ui/.env.staging` | `/stage-api` |
+
+生产环境 Nginx 会将 `/prod-api/` 转发到网关：
+
+```text
+http://hospital-gateway:8080/
+```
+
+## 常用命令
+
+```bash
+# 后端打包
+mvn clean package -DskipTests
+
+# 后端打包，跳过 Maven 测试执行
+mvn clean package -Dmaven.test.skip=true
+
+# 前端开发
+cd hospital-ui
+npm run dev
+
+# 前端生产构建
+cd hospital-ui
+npm run build:prod
+
+# 启动基础 Docker 服务
+cd docker
+docker compose up -d hospital-mysql hospital-redis hospital-nacos
+
+# 查看 Docker 服务状态
+docker compose ps
+
+# 停止 Docker 服务
+docker compose stop
+```
+
+## 常见问题
+
+### 1. 前端 80 端口被占用
+
+指定其他端口启动：
+
+```powershell
+$env:port=8081
+npm run dev
+```
+
+### 2. 后端启动时报 Nacos 配置不存在
+
+确认已导入：
+
+```bash
+mysql -uroot -p123456 < sql/hospital-config_20260311.sql
+```
+
+然后打开 Nacos 控制台检查配置是否存在：
+
+```text
+http://localhost:8848
+```
+
+### 3. 服务注册了但前端接口 404
+
+优先检查：
+
+- `hospital-gateway` 是否启动。
+- Nacos 中 `hospital-gateway-dev.yml` 是否存在路由配置。
+- 前端接口前缀是否为 `/dev-api`。
+- `hospital-ui/vue.config.js` 是否代理到 `http://localhost:8080`。
+
+### 4. Docker 环境服务连不上 MySQL 或 Redis
+
+Nacos 配置中默认使用 `localhost`。如果服务运行在容器内，需要把地址调整为 Docker Compose 服务名：
+
+```text
+MySQL: hospital-mysql
+Redis: hospital-redis
+Nacos: hospital-nacos:8848
+```
+
+### 5. 文档附件上传路径不存在
+
+默认本地上传目录是：
+
+```text
+D:/hospital/uploadPath
+```
+
+请先创建目录，或在 Nacos 的 `hospital-file-dev.yml` 中改为当前机器可写路径。
+
+## 开发说明
+
+- 后端包名统一使用 `com.hospitaloa`。
+- 新增通用能力优先放入 `hospital-common-*`，业务能力优先放入对应业务模块。
+- 当前 OA 业务主要集中在 `hospital-system`，不要误以为 `hospital-oa-collab` 已参与主构建。
+- 前端 OA 页面集中在 `hospital-ui/src/views/oa`，接口封装集中在 `hospital-ui/src/api/oa`。
+- 菜单、权限标识和初始数据主要来自 `sql/00_core_schema.sql` 或合并后的 `sql/hospital_cloud_init.sql`。
+- 网关路由、数据源、Redis、文件服务配置优先在 Nacos 中维护。
+- 变更数据库结构时，建议同步维护拆分脚本和 `hospital_cloud_init.sql`，避免初始化脚本与演进脚本不一致。
+
+## License
+
+本项目沿用仓库根目录 [LICENSE](LICENSE)。
