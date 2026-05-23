@@ -234,6 +234,8 @@ insert into sys_menu values('1107', '通讯录查询', '500', '1', '#', '', '', 
 -- 患者服务按钮
 insert into sys_menu values('1113', '患者查询', '700', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:query',         '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('1114', '病例查询', '701', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:case:query',    '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1115', '患者导出', '700', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:export',        '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1116', '病例导出', '701', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:case:export',   '#', 'admin', sysdate(), '', null, '');
 -- 用户管理按钮
 insert into sys_menu values('1000', '用户查询', '501', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query',          '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('1001', '用户新增', '501', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:add',            '#', 'admin', sysdate(), '', null, '');
@@ -385,6 +387,8 @@ insert into sys_role_menu values ('2', '1111');
 insert into sys_role_menu values ('2', '1112');
 insert into sys_role_menu values ('2', '1113');
 insert into sys_role_menu values ('2', '1114');
+insert into sys_role_menu values ('2', '1115');
+insert into sys_role_menu values ('2', '1116');
 insert into sys_role_menu values ('2', '7');
 insert into sys_role_menu values ('2', '700');
 insert into sys_role_menu values ('2', '701');
@@ -607,6 +611,7 @@ create table sys_job (
 insert into sys_job values(1, '系统默认（无参）', 'DEFAULT', 'hospitalTask.hospitalNoParams',        '0/10 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
 insert into sys_job values(2, '系统默认（有参）', 'DEFAULT', 'hospitalTask.hospitalParams(\'hospital\')',  '0/15 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
 insert into sys_job values(3, '系统默认（多参）', 'DEFAULT', 'hospitalTask.hospitalMultipleParams(\'hospital\', true, 2000L, 316.50D, 100)',  '0/20 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
+insert into sys_job values(4, 'OA reminder scan', 'DEFAULT', 'oaReminderJobTask.scanDueReminders()', '0 0/1 * * * ?', '3', '1', '0', 'admin', sysdate(), '', null, 'Scan due schedule and meeting reminders');
 
 
 -- ----------------------------
@@ -1037,6 +1042,24 @@ create table oa_schedule (
   primary key (schedule_id)
 ) engine=innodb comment='OA日程表';
 
+drop table if exists oa_reminder;
+create table oa_reminder (
+  reminder_id           bigint(20)      not null auto_increment comment '提醒ID',
+  user_id               bigint(20)      not null                comment '接收用户ID',
+  source_type           varchar(30)     not null                comment '来源类型（schedule日程 meeting会议）',
+  source_id             bigint(20)      not null                comment '来源业务ID',
+  reminder_title        varchar(200)    not null                comment '提醒标题',
+  reminder_content      varchar(500)    default null            comment '提醒内容',
+  remind_time           datetime                                comment '提醒时间',
+  read_status           char(1)         default '0'             comment '读取状态（0未读 1已读）',
+  read_time             datetime                                comment '读取时间',
+  create_time           datetime                                comment '创建时间',
+  update_time           datetime                                comment '更新时间',
+  primary key (reminder_id),
+  unique key uk_oa_reminder_source_user (source_type, source_id, user_id),
+  key idx_oa_reminder_user_read (user_id, read_status, remind_time)
+) engine=innodb comment='OA个人提醒表';
+
 -- ----------------------------
 -- 会议协同
 -- ----------------------------
@@ -1326,4 +1349,3 @@ insert into oa_patient_access_log (access_log_id, patient_id, case_id, access_ty
 values
   (1, 1, null, 'patient_detail', 1, '管理员', 100, '内科', sysdate(), '127.0.0.1', '初始化演示患者详情访问日志'),
   (2, 1, 2, 'case_detail', 1, '管理员', 100, '内科', sysdate(), '127.0.0.1', '初始化演示病例详情访问日志');
-

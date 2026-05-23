@@ -12,7 +12,7 @@ import com.hospitaloa.common.security.annotation.EnableRyFeignClients;
  */
 @EnableCustomConfig
 @EnableRyFeignClients   
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.hospitaloa.job", "com.hospitaloa.system.api.factory"})
 public class HospitalJobApplication
 {
     public static void main(String[] args)

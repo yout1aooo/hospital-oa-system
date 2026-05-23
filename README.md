@@ -236,7 +236,7 @@ mysql -uroot -p123456 < sql/hospital-config_20260311.sql
 
 如需启用 Seata 预留库，再额外执行：
 
-```bash
+```bashnv
 mysql -uroot -p123456 < sql/hospital-seata_20210128.sql
 ```
 

@@ -76,6 +76,13 @@
             <artifactId>hospital-common-swagger</artifactId>
         </dependency>
 
+        <!-- EasyExcel 报表导出 -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+            <version>4.0.3</version>
+        </dependency>
+
     </dependencies>
 
     <build>

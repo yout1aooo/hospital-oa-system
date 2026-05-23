@@ -7,6 +7,8 @@
         <p class="oa-module-subtitle">面向院内办公协同的患者主档和病例检索，列表脱敏展示，详情访问继续保留审计记录。</p>
       </div>
       <div class="oa-module-actions">
+        <el-button v-if="activeTab === 'patient'" v-hasPermi="['oa:patient:export']" type="warning" plain icon="el-icon-download" @click="handleExportPatient">导出患者</el-button>
+        <el-button v-if="activeTab === 'case'" v-hasPermi="['oa:patient:case:export']" type="warning" plain icon="el-icon-download" @click="handleExportCase">导出病例</el-button>
         <el-button type="primary" icon="el-icon-search" @click="getCurrentList">刷新数据</el-button>
       </div>
     </section>
@@ -361,6 +363,24 @@ export default {
         this.caseDetail = res.data
         this.caseDetailOpen = true
       })
+    },
+    handleExportPatient() {
+      this.download('system/oa/patient/export', {
+        keyword: this.queryParams.keyword,
+        deptId: this.queryParams.deptId,
+        doctorName: this.queryParams.doctorName,
+        patientStatus: this.queryParams.patientStatus,
+        beginAdmissionTime: this.admissionRange && this.admissionRange.length ? this.admissionRange[0] : undefined,
+        endAdmissionTime: this.admissionRange && this.admissionRange.length ? this.admissionRange[1] : undefined
+      }, `patient_report_${new Date().getTime()}.xlsx`)
+    },
+    handleExportCase() {
+      this.download('system/oa/patient/case/export', {
+        keyword: this.queryParams.keyword,
+        deptId: this.queryParams.deptId,
+        doctorName: this.queryParams.doctorName,
+        caseStatus: this.queryParams.caseStatus
+      }, `case_report_${new Date().getTime()}.xlsx`)
     },
     maskIdCard(value) {
       if (!value) {

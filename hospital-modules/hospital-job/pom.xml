@@ -58,6 +58,12 @@
             <groupId>com.hospitaloa</groupId>
             <artifactId>hospital-common-log</artifactId>
         </dependency>
+
+        <!-- Hospital Api System -->
+        <dependency>
+            <groupId>com.hospitaloa</groupId>
+            <artifactId>hospital-api-system</artifactId>
+        </dependency>
         
         <!-- Hospital Common Swagger -->
         <dependency>

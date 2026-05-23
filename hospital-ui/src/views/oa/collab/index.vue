@@ -770,12 +770,13 @@ export default {
       this.getTaskList()
     },
     openScheduleDialog(day) {
+      const formDay = day || this.selectedDay
       this.scheduleForm = {
         scheduleTitle: undefined,
         scheduleType: undefined,
-        startTime: this.buildDateTime(day, '09:00:00'),
-        endTime: this.buildDateTime(day, '10:00:00'),
-        remindTime: this.buildDateTime(day, '08:30:00'),
+        startTime: this.buildDateTime(formDay, '09:00:00'),
+        endTime: this.buildDateTime(formDay, '10:00:00'),
+        remindTime: this.buildDateTime(formDay, '08:30:00'),
         scheduleStatus: 'pending',
         remark: undefined
       }

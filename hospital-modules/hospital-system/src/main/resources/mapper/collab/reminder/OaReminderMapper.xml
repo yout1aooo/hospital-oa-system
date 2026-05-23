@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hospitaloa.oa.collab.reminder.mapper.OaReminderMapper">
+
+    <resultMap id="OaReminderResult" type="com.hospitaloa.oa.collab.reminder.domain.OaReminder">
+        <id property="reminderId" column="reminder_id" />
+        <result property="userId" column="user_id" />
+        <result property="sourceType" column="source_type" />
+        <result property="sourceId" column="source_id" />
+        <result property="reminderTitle" column="reminder_title" />
+        <result property="reminderContent" column="reminder_content" />
+        <result property="remindTime" column="remind_time" />
+        <result property="readStatus" column="read_status" />
+        <result property="readTime" column="read_time" />
+        <result property="createTime" column="create_time" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+
+    <select id="selectUnreadReminderList" resultMap="OaReminderResult">
+        select reminder_id,
+               user_id,
+               source_type,
+               source_id,
+               reminder_title,
+               reminder_content,
+               remind_time,
+               read_status,
+               read_time,
+               create_time,
+               update_time
+        from oa_reminder
+        where user_id = #{userId}
+          and read_status = '0'
+        order by remind_time desc, reminder_id desc
+        limit #{limit}
+    </select>
+
+    <select id="selectUnreadReminderCount" resultType="int">
+        select count(1)
+        from oa_reminder
+        where user_id = #{userId}
+          and read_status = '0'
+    </select>
+
+    <update id="markReminderRead">
+        update oa_reminder
+        set read_status = '1',
+            read_time = sysdate(),
+            update_time = sysdate()
+        where reminder_id = #{reminderId}
+          and user_id = #{userId}
+          and read_status = '0'
+    </update>
+
+    <update id="markAllRemindersRead">
+        update oa_reminder
+        set read_status = '1',
+            read_time = sysdate(),
+            update_time = sysdate()
+        where user_id = #{userId}
+          and read_status = '0'
+    </update>
+
+    <insert id="insertDueScheduleReminders">
+        insert ignore into oa_reminder (
+            user_id, source_type, source_id, reminder_title, reminder_content, remind_time, read_status, create_time, update_time
+        )
+        select s.owner_id,
+               'schedule',
+               s.schedule_id,
+               concat('日程提醒：', s.schedule_title),
+               left(concat('日程“', s.schedule_title, '”即将开始，开始时间：', ifnull(date_format(s.start_time, '%Y-%m-%d %H:%i'), '-'),
+                           case when s.remark is not null and s.remark != '' then concat('，备注：', s.remark) else '' end), 500),
+               s.remind_time,
+               '0',
+               sysdate(),
+               sysdate()
+        from oa_schedule s
+        where s.schedule_status = 'pending'
+          and s.remind_time is not null
+          and s.remind_time &lt;= sysdate()
+          and not exists (
+              select 1
+              from oa_reminder r
+              where r.user_id = s.owner_id
+                and r.source_type = 'schedule'
+                and r.source_id = s.schedule_id
+          )
+    </insert>
+
+    <insert id="insertDueMeetingReminders">
+        insert ignore into oa_reminder (
+            user_id, source_type, source_id, reminder_title, reminder_content, remind_time, read_status, create_time, update_time
+        )
+        select m.organizer_id,
+               'meeting',
+               m.meeting_id,
+               concat('会议提醒：', m.meeting_title),
+               concat('会议“', m.meeting_title, '”将在15分钟内开始，会议室：', ifnull(r.room_name, '-'), '，开始时间：', ifnull(date_format(m.start_time, '%Y-%m-%d %H:%i'), '-')),
+               date_sub(m.start_time, interval 15 minute),
+               '0',
+               sysdate(),
+               sysdate()
+        from oa_meeting m
+        left join oa_meeting_room r on m.room_id = r.room_id
+        where m.meeting_status = 'scheduled'
+          and m.start_time is not null
+          and date_sub(m.start_time, interval 15 minute) &lt;= sysdate()
+          and (m.end_time is null or m.end_time &gt;= sysdate())
+          and not exists (
+              select 1
+              from oa_reminder n
+              where n.user_id = m.organizer_id
+                and n.source_type = 'meeting'
+                and n.source_id = m.meeting_id
+          )
+    </insert>
+</mapper>

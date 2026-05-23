@@ -221,6 +221,8 @@ insert into sys_menu values('1107', '通讯录查询', '500', '1', '#', '', '', 
 -- 患者服务按钮
 insert into sys_menu values('1113', '患者查询', '700', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:query',         '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('1114', '病例查询', '701', '1', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:case:query',    '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1115', '患者导出', '700', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:export',        '#', 'admin', sysdate(), '', null, '');
+insert into sys_menu values('1116', '病例导出', '701', '2', '#', '', '', '', 1, 0, 'F', '0', '0', 'oa:patient:case:export',   '#', 'admin', sysdate(), '', null, '');
 -- 用户管理按钮
 insert into sys_menu values('1000', '用户查询', '501', '1',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:query',          '#', 'admin', sysdate(), '', null, '');
 insert into sys_menu values('1001', '用户新增', '501', '2',  '', '', '', '', 1, 0, 'F', '0', '0', 'system:user:add',            '#', 'admin', sysdate(), '', null, '');
@@ -372,6 +374,8 @@ insert into sys_role_menu values ('2', '1111');
 insert into sys_role_menu values ('2', '1112');
 insert into sys_role_menu values ('2', '1113');
 insert into sys_role_menu values ('2', '1114');
+insert into sys_role_menu values ('2', '1115');
+insert into sys_role_menu values ('2', '1116');
 insert into sys_role_menu values ('2', '7');
 insert into sys_role_menu values ('2', '700');
 insert into sys_role_menu values ('2', '701');
@@ -594,6 +598,7 @@ create table sys_job (
 insert into sys_job values(1, '系统默认（无参）', 'DEFAULT', 'hospitalTask.hospitalNoParams',        '0/10 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
 insert into sys_job values(2, '系统默认（有参）', 'DEFAULT', 'hospitalTask.hospitalParams(\'hospital\')',  '0/15 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
 insert into sys_job values(3, '系统默认（多参）', 'DEFAULT', 'hospitalTask.hospitalMultipleParams(\'hospital\', true, 2000L, 316.50D, 100)',  '0/20 * * * * ?', '3', '1', '1', 'admin', sysdate(), '', null, '');
+insert into sys_job values(4, 'OA reminder scan', 'DEFAULT', 'oaReminderJobTask.scanDueReminders()', '0 0/1 * * * ?', '3', '1', '0', 'admin', sysdate(), '', null, 'Scan due schedule and meeting reminders');
 
 
 -- ----------------------------

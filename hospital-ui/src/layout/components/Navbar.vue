@@ -20,6 +20,28 @@
 
       </template>
 
+      <el-dropdown class="reminder-container right-menu-item hover-effect" trigger="click" @visible-change="handleReminderVisible">
+        <div class="reminder-trigger">
+          <el-badge :value="unreadReminderCount" :hidden="!unreadReminderCount" :max="99">
+            <i class="el-icon-bell" />
+          </el-badge>
+        </div>
+        <el-dropdown-menu slot="dropdown" class="reminder-dropdown">
+          <div class="reminder-dropdown-head">
+            <span>事项提醒</span>
+            <el-button v-if="unreadReminders.length" type="text" size="mini" @click.stop="handleReadAllReminders">全部已读</el-button>
+          </div>
+          <div v-if="unreadReminders.length" class="reminder-list">
+            <div v-for="item in unreadReminders" :key="item.reminderId" class="reminder-item" @click="handleReminderRead(item)">
+              <div class="reminder-item-title">{{ item.reminderTitle || '事项提醒' }}</div>
+              <div class="reminder-item-content">{{ item.reminderContent || '-' }}</div>
+              <div class="reminder-item-time">{{ formatReminderTime(item.remindTime) }}</div>
+            </div>
+          </div>
+          <el-empty v-else description="暂无未读提醒" :image-size="72" />
+        </el-dropdown-menu>
+      </el-dropdown>
+
       <el-dropdown class="avatar-container right-menu-item hover-effect" trigger="hover">
         <div class="avatar-wrapper">
           <img :src="avatar" class="user-avatar">
@@ -51,6 +73,7 @@ import Hamburger from '@/components/Hamburger'
 import Screenfull from '@/components/Screenfull'
 import SizeSelect from '@/components/SizeSelect'
 import Search from '@/components/HeaderSearch'
+import { getUnreadReminderCount, listUnreadReminders, markAllRemindersRead, markReminderRead } from '@/api/oa/reminder'
 
 export default {
   emits: ['setLayout'],
@@ -63,6 +86,14 @@ export default {
     Screenfull,
     SizeSelect,
     Search
+  },
+  data() {
+    return {
+      reminderTimer: null,
+      unreadReminders: [],
+      unreadReminderCount: 0,
+      notifiedReminderIds: []
+    }
   },
   computed: {
     ...mapGetters([
@@ -87,6 +118,17 @@ export default {
       }
     }
   },
+  mounted() {
+    this.notifiedReminderIds = this.loadNotifiedReminderIds()
+    this.pollReminders()
+    this.reminderTimer = setInterval(this.pollReminders, 60000)
+  },
+  beforeDestroy() {
+    if (this.reminderTimer) {
+      clearInterval(this.reminderTimer)
+      this.reminderTimer = null
+    }
+  },
   methods: {
     toggleSideBar() {
       this.$store.dispatch('app/toggleSideBar')
@@ -104,6 +146,75 @@ export default {
           location.href = '/index'
         })
       }).catch(() => {})
+    },
+    handleReminderVisible(visible) {
+      if (visible) {
+        this.pollReminders()
+      }
+    },
+    pollReminders() {
+      Promise.all([listUnreadReminders(10), getUnreadReminderCount()]).then(([listRes, countRes]) => {
+        const reminders = listRes.data || []
+        this.unreadReminders = reminders
+        this.unreadReminderCount = countRes.data || reminders.length
+        this.notifyNewReminders(reminders)
+      }).catch(() => {})
+    },
+    notifyNewReminders(reminders) {
+      let changed = false
+      reminders.forEach(item => {
+        const reminderId = String(item.reminderId)
+        if (!reminderId || this.notifiedReminderIds.includes(reminderId)) {
+          return
+        }
+        this.notifiedReminderIds.push(reminderId)
+        changed = true
+        this.$notify({
+          title: item.reminderTitle || '事项提醒',
+          message: item.reminderContent || '',
+          type: item.sourceType === 'meeting' ? 'info' : 'warning',
+          duration: 8000
+        })
+      })
+      if (changed) {
+        this.notifiedReminderIds = this.notifiedReminderIds.slice(-100)
+        sessionStorage.setItem('oa_notified_reminders', JSON.stringify(this.notifiedReminderIds))
+      }
+    },
+    loadNotifiedReminderIds() {
+      try {
+        const ids = JSON.parse(sessionStorage.getItem('oa_notified_reminders') || '[]')
+        return Array.isArray(ids) ? ids.map(item => String(item)) : []
+      } catch (e) {
+        return []
+      }
+    },
+    handleReminderRead(item) {
+      markReminderRead(item.reminderId).then(() => {
+        this.unreadReminders = this.unreadReminders.filter(reminder => reminder.reminderId !== item.reminderId)
+        this.unreadReminderCount = Math.max(0, this.unreadReminderCount - 1)
+        this.openReminderSource(item)
+      })
+    },
+    handleReadAllReminders() {
+      markAllRemindersRead().then(() => {
+        this.unreadReminders = []
+        this.unreadReminderCount = 0
+        this.$modal.msgSuccess('提醒已全部标记为已读')
+      })
+    },
+    openReminderSource(item) {
+      if (item.sourceType === 'meeting') {
+        this.$router.push({ path: '/collab/meeting', query: { tab: 'meeting' } })
+        return
+      }
+      this.$router.push({ path: '/collab/schedule' })
+    },
+    formatReminderTime(value) {
+      if (!value) {
+        return '-'
+      }
+      return String(value).slice(0, 16)
     }
   }
 }
@@ -199,6 +310,23 @@ export default {
       }
     }
 
+    .reminder-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 38px;
+      margin-right: 8px;
+      padding: 0 10px;
+
+      .reminder-trigger {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 38px;
+        line-height: 38px;
+      }
+    }
+
     .avatar-container {
       margin-right: 0px;
       padding-right: 0px;
@@ -243,5 +371,57 @@ export default {
       }
     }
   }
+}
+
+.reminder-dropdown {
+  width: 340px;
+  padding: 0;
+}
+
+.reminder-dropdown-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid #edf2f7;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.reminder-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.reminder-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+
+  &:hover {
+    background: #f8fafc;
+  }
+}
+
+.reminder-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 20px;
+}
+
+.reminder-item-content {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 18px;
+  white-space: normal;
+}
+
+.reminder-item-time {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #94a3b8;
 }
 </style>
